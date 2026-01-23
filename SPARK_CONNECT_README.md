@@ -1,6 +1,6 @@
 # ⚡ Spark Connect for Entity Matching
 
-Your entity matching pipeline now supports **Spark Connect** - run code locally while executing on remote Databricks clusters!
+Your entity matching pipeline uses **Spark Connect by default** - run code locally while executing on remote Databricks clusters!
 
 ## 🚀 Quick Start (3 Steps)
 
@@ -25,7 +25,7 @@ python test_spark_connect.py
 
 - **🔐 Secure Authentication**: Uses Databricks CLI profiles (no tokens in code)
 - **🌍 Multi-Environment**: Easily switch between dev/staging/prod
-- **🔄 Auto-Detection**: Automatically uses Spark Connect when enabled
+- **✅ Default Enabled**: Spark Connect is on by default - opt-out if needed
 - **🏠 Local Development**: Write and debug code locally
 - **☁️ Remote Execution**: Leverage powerful Databricks clusters
 
@@ -48,7 +48,7 @@ from src.utils.spark_utils import get_spark_session
 
 load_dotenv()
 
-# Connect to remote Databricks cluster
+# Connect to remote Databricks cluster (default behavior)
 spark = get_spark_session()
 
 # Use Spark normally - execution happens on remote cluster
@@ -63,19 +63,23 @@ df.show()
 # Configure once
 databricks configure --profile DEFAULT
 
-# .env file
+# .env file (Spark Connect enabled by default)
 DATABRICKS_PROFILE=DEFAULT
 SPARK_CONNECT_CLUSTER_ID=1234-567890-abcdefgh
-USE_SPARK_CONNECT=true
+
+# To disable Spark Connect and use local Spark:
+# USE_SPARK_CONNECT=false
 ```
 
 ### Method 2: Environment Variables
 ```bash
-# .env file
+# .env file (Spark Connect enabled by default)
 DATABRICKS_HOST=dbc-xxxxx.cloud.databricks.com
 DATABRICKS_TOKEN=dapiXXXXXXXXXXXX
 SPARK_CONNECT_CLUSTER_ID=1234-567890-abcdefgh
-USE_SPARK_CONNECT=true
+
+# To disable Spark Connect and use local Spark:
+# USE_SPARK_CONNECT=false
 ```
 
 ## 🎯 Common Tasks

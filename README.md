@@ -90,7 +90,7 @@ uv sync
 
 ### Spark Connect Setup (Local Development with Remote Databricks)
 
-To run Spark locally while executing on a remote Databricks cluster:
+**Spark Connect is ENABLED BY DEFAULT** - run code locally while executing on a remote Databricks cluster!
 
 1. **Install and configure Databricks CLI:**
 ```bash
@@ -118,16 +118,17 @@ databricks workspace ls /
 cp .env.example .env
 ```
 
-4. **Configure environment variables in `.env`:**
+4. **Configure cluster ID in `.env`:**
 ```bash
 # Databricks CLI profile name
 DATABRICKS_PROFILE=DEFAULT
 
-# Cluster ID from step 2
+# Cluster ID from step 2 (REQUIRED for Spark Connect)
 SPARK_CONNECT_CLUSTER_ID=1234-567890-abcdefgh
 
-# Enable Spark Connect
-USE_SPARK_CONNECT=true
+# Spark Connect is enabled by default
+# To use local Spark instead, uncomment:
+# USE_SPARK_CONNECT=false
 ```
 
 5. **Test connection:**
@@ -137,7 +138,7 @@ from src.utils.spark_utils import get_spark_session
 
 load_dotenv()
 
-# Connect using CLI profile
+# Connects to remote Databricks cluster by default
 spark = get_spark_session()
 
 # Verify connection
@@ -153,6 +154,14 @@ databricks configure --profile prod
 
 # Use specific profile
 spark = get_spark_session(profile="dev")
+```
+
+**Using Local Spark (Opt-Out):**
+```python
+# Force local Spark execution
+spark = get_spark_session(force_local=True)
+
+# Or set in .env: USE_SPARK_CONNECT=false
 ```
 
 ### Databricks Setup

@@ -2,6 +2,8 @@
 
 This document provides a quick reference for setting up and using Spark Connect with Databricks CLI authentication.
 
+**Spark Connect is ENABLED BY DEFAULT** - Your code will execute on remote Databricks clusters unless explicitly configured otherwise.
+
 ## Quick Start
 
 ### 1. Configure Databricks CLI
@@ -30,11 +32,11 @@ Create `.env` file:
 # Use Databricks CLI profile for auth (recommended)
 DATABRICKS_PROFILE=DEFAULT
 
-# Your cluster ID
+# Your cluster ID (REQUIRED)
 SPARK_CONNECT_CLUSTER_ID=1234-567890-abcdefgh
 
-# Enable Spark Connect
-USE_SPARK_CONNECT=true
+# Spark Connect is enabled by default
+# To use local Spark, set: USE_SPARK_CONNECT=false
 ```
 
 ### 3. Test Connection
@@ -74,7 +76,7 @@ spark = get_spark_session(profile="dev")
 DATABRICKS_HOST=dbc-xxxxx.cloud.databricks.com
 DATABRICKS_TOKEN=dapiXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 SPARK_CONNECT_CLUSTER_ID=1234-567890-abcdefgh
-USE_SPARK_CONNECT=true
+# USE_SPARK_CONNECT=true  # Enabled by default
 ```
 
 ```python
@@ -176,7 +178,7 @@ spark = get_spark_session(force_local=True)
 
 ## Common Use Cases
 
-### 1. Development with CLI Profile
+### 1. Development with CLI Profile (Default)
 
 ```python
 from dotenv import load_dotenv
@@ -184,10 +186,10 @@ from src.utils.spark_utils import get_spark_session
 
 load_dotenv()
 
-# Use DEFAULT profile
+# Use DEFAULT profile - connects to remote cluster by default
 spark = get_spark_session()
 
-# Run your code
+# Run your code - executes on Databricks cluster
 df = spark.table("my_table")
 df.show()
 ```

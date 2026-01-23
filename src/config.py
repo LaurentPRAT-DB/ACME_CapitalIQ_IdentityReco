@@ -82,8 +82,8 @@ class DataConfig:
 class SparkConfig:
     """Configuration for Spark Connect"""
 
-    # Spark Connect
-    use_spark_connect: bool = False
+    # Spark Connect (enabled by default for local development)
+    use_spark_connect: bool = True
     spark_remote: Optional[str] = None  # e.g., "sc://dbc-xxxxx.cloud.databricks.com:443/;token=<token>"
     spark_connect_cluster_id: Optional[str] = None
 

@@ -10,6 +10,8 @@ Spark Connect is a new client-server architecture introduced in Spark 3.4+ that 
 - Use the same PySpark API you're familiar with
 - Debug locally with your IDE and breakpoints
 
+**This project is configured to use Spark Connect by default for local development.**
+
 ## Benefits
 
 - **Local Development**: Write code in your favorite IDE with full debugging support
@@ -116,11 +118,12 @@ Edit `.env`:
 # Databricks CLI profile (recommended)
 DATABRICKS_PROFILE=DEFAULT  # or dev, prod, staging, etc.
 
-# Cluster ID for Spark Connect
+# Cluster ID for Spark Connect (REQUIRED)
 SPARK_CONNECT_CLUSTER_ID=1234-567890-abcdefgh
 
-# Enable Spark Connect
-USE_SPARK_CONNECT=true
+# Spark Connect is enabled by default
+# To use local Spark instead, set:
+# USE_SPARK_CONNECT=false
 
 # Optional: MLflow tracking
 MLFLOW_TRACKING_URI=databricks

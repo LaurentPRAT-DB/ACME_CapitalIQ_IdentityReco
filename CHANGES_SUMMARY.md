@@ -2,7 +2,9 @@
 
 ## Overview
 
-The project has been updated to support Spark Connect, allowing you to run code locally while executing computations on a remote Databricks cluster. Authentication is handled via the Databricks CLI with profile support, making it secure and easy to manage multiple environments.
+The project has been updated to use **Spark Connect by default**, allowing you to run code locally while executing computations on a remote Databricks cluster. Authentication is handled via the Databricks CLI with profile support, making it secure and easy to manage multiple environments.
+
+**IMPORTANT: Spark Connect is now the default behavior for local development.** Set `USE_SPARK_CONNECT=false` to opt-out and use local Spark instead.
 
 ## Changes Made
 
@@ -62,13 +64,14 @@ The project has been updated to support Spark Connect, allowing you to run code 
 #### Configuration
 - **`src/config.py`**
   - Added `SparkConfig` dataclass with:
-    - `use_spark_connect` - Enable/disable Spark Connect
+    - `use_spark_connect` - **Enable/disable Spark Connect (DEFAULT: True)**
     - `spark_remote` - Spark Connect URL
     - `spark_connect_cluster_id` - Target cluster ID
     - `spark_app_name` - Application name
     - `spark_master` - Local Spark master
   - Updated `Config.from_env()` to load Spark Connect settings
   - Added support for `DATABRICKS_PROFILE` environment variable
+  - **Spark Connect is now enabled by default**
 
 #### Dependencies
 - **`requirements.txt`**
@@ -129,16 +132,18 @@ DATABRICKS_PROFILE=DEFAULT
 SPARK_CONNECT_CLUSTER_ID=xxx
 ```
 
-### 3. Auto-Detection
+### 3. Default Enabled with Opt-Out
 
-Automatically determines whether to use Spark Connect or local Spark:
+**Spark Connect is enabled by default.** Use local Spark if needed:
 
 ```python
-# Auto-detect from USE_SPARK_CONNECT env var
+# Uses Spark Connect by default (remote execution)
 spark = get_spark_session()
 
-# Force local Spark
+# Opt-out: Force local Spark execution
 spark = get_spark_session(force_local=True)
+
+# Or set in .env: USE_SPARK_CONNECT=false
 ```
 
 ### 4. Multiple Environment Support
@@ -345,4 +350,6 @@ For issues or questions:
 
 ---
 
-**Note**: All changes are backward compatible. Existing code continues to work unchanged. Spark Connect is opt-in via `USE_SPARK_CONNECT=true` environment variable.
+**Note**: Spark Connect is now **enabled by default** for local development. To use local Spark instead, set `USE_SPARK_CONNECT=false` in your `.env` file or call `get_spark_session(force_local=True)`.
+
+Existing code will automatically use Spark Connect if a cluster ID is configured, or fall back to local Spark if not.

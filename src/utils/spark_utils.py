@@ -163,9 +163,11 @@ def get_spark_session(
     """
     Get or create Spark session with automatic Connect detection
 
+    **Spark Connect is ENABLED BY DEFAULT** for local development with remote execution.
+
     This function automatically determines whether to use Spark Connect based on:
-    1. force_local parameter (overrides all)
-    2. USE_SPARK_CONNECT environment variable
+    1. force_local parameter (overrides all - disables Spark Connect)
+    2. USE_SPARK_CONNECT environment variable (default: True)
     3. Configuration object settings
 
     Args:
@@ -178,13 +180,13 @@ def get_spark_session(
         SparkSession configured appropriately for the environment
 
     Example:
-        # Auto-detect based on environment (uses DEFAULT profile)
+        # Uses Spark Connect by default (remote execution)
         spark = get_spark_session()
 
         # Use specific Databricks CLI profile
         spark = get_spark_session(profile="dev")
 
-        # Force local Spark
+        # Opt-out: Force local Spark execution
         spark = get_spark_session(force_local=True)
 
         # Use with custom config
@@ -194,11 +196,11 @@ def get_spark_session(
     cfg = config_obj or config
     app_name = app_name or cfg.spark.spark_app_name
 
-    # Check if we should use Spark Connect
+    # Check if we should use Spark Connect (enabled by default)
     use_connect = cfg.spark.use_spark_connect and not force_local
 
     if use_connect:
-        print("Using Spark Connect to remote Databricks cluster")
+        print("Using Spark Connect to remote Databricks cluster (default behavior)")
         return init_spark_connect(
             cluster_id=cfg.spark.spark_connect_cluster_id,
             profile=profile,
