@@ -78,6 +78,139 @@ def _get_databricks_config_from_profile(profile: Optional[str] = None) -> dict:
         )
 
 
+def _create_serverless_session(host: str, token: str) -> str:
+    """
+    Create a serverless Spark session via Databricks API
+
+    Args:
+        host: Databricks workspace URL (without https://)
+        token: Databricks access token
+
+    Returns:
+        Session ID for serverless Spark compute
+
+    Raises:
+        RuntimeError: If session creation fails
+    """
+    import requests
+    import json
+    import time
+
+    # Try to create a serverless Spark session
+    # API endpoint for serverless sessions (Databricks 13.0+)
+    session_url = f"https://{host}/api/2.0/serverless-sessions"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    try:
+        # Create a new serverless session
+        session_data = {
+            "name": "entity-matching-spark-connect",
+            "spark_version": "auto",  # Use latest available
+            "num_workers": 1,  # Start with minimal workers
+            "autoscale": {
+                "min_workers": 1,
+                "max_workers": 4
+            }
+        }
+
+        print(f"Creating serverless Spark session...")
+        response = requests.post(session_url, headers=headers, json=session_data, timeout=30)
+
+        if response.status_code == 404:
+            # Serverless sessions API not available - fallback to finding existing cluster
+            print("Serverless sessions API not available, finding alternative compute...")
+            return _find_available_cluster(host, token)
+
+        response.raise_for_status()
+        session_info = response.json()
+        session_id = session_info.get("session_id")
+
+        if not session_id:
+            raise RuntimeError("No session ID returned from API")
+
+        print(f"✓ Serverless session created: {session_id}")
+
+        # Wait for session to be ready (with timeout)
+        print("Waiting for session to start...", end="", flush=True)
+        max_wait = 60  # 60 seconds timeout
+        start_time = time.time()
+
+        while time.time() - start_time < max_wait:
+            status_response = requests.get(
+                f"{session_url}/{session_id}",
+                headers=headers,
+                timeout=10
+            )
+            if status_response.status_code == 200:
+                status = status_response.json().get("state", "UNKNOWN")
+                if status == "RUNNING":
+                    print(" ✓")
+                    return session_id
+                elif status in ["TERMINATED", "ERROR"]:
+                    raise RuntimeError(f"Session failed to start: {status}")
+            print(".", end="", flush=True)
+            time.sleep(2)
+
+        raise RuntimeError("Session startup timeout")
+
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            print("Serverless API not available, finding alternative compute...")
+            return _find_available_cluster(host, token)
+        raise RuntimeError(f"Failed to create serverless session: {e}")
+    except Exception as e:
+        raise RuntimeError(f"Error creating serverless session: {e}")
+
+
+def _find_available_cluster(host: str, token: str) -> str:
+    """
+    Find an available running cluster as fallback
+
+    Args:
+        host: Databricks workspace URL (without https://)
+        token: Databricks access token
+
+    Returns:
+        Cluster ID
+
+    Raises:
+        RuntimeError: If no cluster found
+    """
+    import requests
+
+    url = f"https://{host}/api/2.0/clusters/list"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    try:
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+
+        clusters = response.json().get("clusters", [])
+
+        # Find first RUNNING cluster
+        for cluster in clusters:
+            if cluster.get("state") == "RUNNING":
+                cluster_id = cluster.get("cluster_id")
+                cluster_name = cluster.get("cluster_name", "unknown")
+                print(f"✓ Using existing cluster: {cluster_name} (ID: {cluster_id})")
+                return cluster_id
+
+        raise RuntimeError(
+            "No running clusters found. Please:\n"
+            "  1. Start a cluster in Databricks workspace, OR\n"
+            "  2. Use local Spark: get_spark_session(force_local=True)"
+        )
+
+    except requests.exceptions.RequestException as e:
+        raise RuntimeError(f"Failed to query clusters: {e}")
+
+
 def init_spark_connect(
     cluster_id: Optional[str] = None,
     profile: Optional[str] = None,
@@ -86,10 +219,10 @@ def init_spark_connect(
     app_name: str = "entity-matching-pipeline"
 ) -> SparkSession:
     """
-    Initialize Spark session with Spark Connect to a remote Databricks cluster
+    Initialize Spark session with Spark Connect to a remote Databricks cluster or serverless
 
     Args:
-        cluster_id: Databricks cluster ID to connect to
+        cluster_id: Databricks cluster ID to connect to (leave empty for serverless)
         profile: Databricks CLI profile name (uses DEFAULT if not specified)
         databricks_host: Databricks workspace URL (optional, overrides profile)
         databricks_token: Databricks personal access token (optional, overrides profile)
@@ -99,27 +232,20 @@ def init_spark_connect(
         SparkSession configured with Spark Connect
 
     Environment Variables:
-        SPARK_CONNECT_CLUSTER_ID: Databricks cluster ID
+        SPARK_CONNECT_CLUSTER_ID: Databricks cluster ID (empty for serverless)
         DATABRICKS_PROFILE: CLI profile name (default: DEFAULT)
         DATABRICKS_HOST: Workspace URL (overrides profile)
         DATABRICKS_TOKEN: Access token (overrides profile)
 
     Example:
-        # Using Databricks CLI profile (recommended)
+        # Using serverless (no cluster ID)
+        spark = init_spark_connect()
+
+        # Using specific cluster
         spark = init_spark_connect(cluster_id="1234-567890-abcdefgh")
 
         # Using named profile
-        spark = init_spark_connect(
-            cluster_id="1234-567890-abcdefgh",
-            profile="dev"
-        )
-
-        # Using explicit credentials (not recommended)
-        spark = init_spark_connect(
-            cluster_id="1234-567890-abcdefgh",
-            databricks_host="dbc-xxxxx.cloud.databricks.com",
-            databricks_token="dapi..."
-        )
+        spark = init_spark_connect(profile="dev")
     """
     # Get cluster ID (optional for serverless)
     cluster = cluster_id or os.getenv("SPARK_CONNECT_CLUSTER_ID")
@@ -151,12 +277,23 @@ def init_spark_connect(
     host = host.replace("https://", "").replace("http://", "")
 
     # Build Spark Connect URL
-    # Format with cluster: sc://<workspace-url>:443/;token=<token>;x-databricks-cluster-id=<cluster-id>
-    # Format serverless: sc://<workspace-url>:443/;token=<token>
     if use_serverless:
-        spark_remote = f"sc://{host}:443/;token={token}"
         print(f"Connecting to Databricks Serverless via Spark Connect...")
         print(f"Workspace: {host}")
+
+        # Create or get serverless session
+        try:
+            warehouse_id = _create_serverless_session(host, token)
+
+            # Use warehouse ID as cluster ID for Spark Connect
+            # Databricks SQL warehouses work with Spark Connect using cluster ID parameter
+            spark_remote = f"sc://{host}:443/;token={token};x-databricks-cluster-id={warehouse_id}"
+            print(f"Using SQL Warehouse as compute: {warehouse_id}")
+
+        except Exception as e:
+            print(f"Warning: Could not create serverless session: {e}")
+            print("Falling back to default Spark Connect configuration...")
+            spark_remote = f"sc://{host}:443/;token={token}"
     else:
         spark_remote = f"sc://{host}:443/;token={token};x-databricks-cluster-id={cluster}"
         print(f"Connecting to Databricks cluster {cluster} via Spark Connect...")
