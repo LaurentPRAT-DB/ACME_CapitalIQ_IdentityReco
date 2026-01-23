@@ -209,7 +209,7 @@ def get_spark_session(
             app_name=app_name
         )
     else:
-        print("Using local Spark session")
+        print("Using local Spark session (Spark Connect disabled)")
         spark = (
             SparkSession.builder
             .appName(app_name)
@@ -219,6 +219,7 @@ def get_spark_session(
             .getOrCreate()
         )
         print(f"✓ Local Spark session created (version {spark.version})")
+        print("💡 Tip: To use remote execution, set USE_SPARK_CONNECT=true and configure SPARK_CONNECT_CLUSTER_ID")
         return spark
 
 
