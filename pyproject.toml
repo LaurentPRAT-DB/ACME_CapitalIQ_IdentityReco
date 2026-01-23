@@ -3,6 +3,23 @@ name = "entity-matching-capitaliq"
 version = "1.0.0"
 description = "GenAI-powered entity matching for S&P Capital IQ identity reconciliation"
 readme = "README.md"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Laurent Prat", email = "laurent.prat@databricks.com"}
+]
+keywords = ["databricks", "entity-matching", "machine-learning", "spark-connect", "capital-iq"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Office/Business :: Financial",
+]
 requires-python = ">=3.9"
 dependencies = [
     "pandas>=2.0.0",

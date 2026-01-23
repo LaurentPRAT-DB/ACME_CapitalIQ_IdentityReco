@@ -1,0 +1,110 @@
+Entity Matching for S&P Capital IQ Identity Reconciliation
+Copyright 2026 Laurent Prat
+
+This product includes software developed for entity matching and identity
+reconciliation using GenAI and machine learning techniques.
+
+This project uses the following open-source libraries and tools:
+
+================================================================================
+Apache License 2.0
+================================================================================
+
+* Databricks SDK for Python
+  Copyright Databricks, Inc.
+  https://github.com/databricks/databricks-sdk-py
+
+* PySpark
+  Copyright The Apache Software Foundation
+  https://spark.apache.org/
+
+* MLflow
+  Copyright Databricks, Inc.
+  https://mlflow.org/
+
+* Delta Lake
+  Copyright The Linux Foundation
+  https://delta.io/
+
+* PyArrow
+  Copyright The Apache Software Foundation
+  https://arrow.apache.org/
+
+================================================================================
+MIT License
+================================================================================
+
+* sentence-transformers
+  Copyright Nils Reimers
+  https://github.com/UKPLab/sentence-transformers
+
+* transformers (Hugging Face)
+  Copyright Hugging Face, Inc.
+  https://github.com/huggingface/transformers
+
+* scikit-learn
+  Copyright scikit-learn developers
+  https://scikit-learn.org/
+
+* pandas
+  Copyright pandas developers
+  https://pandas.pydata.org/
+
+* python-dotenv
+  Copyright Saurabh Kumar
+  https://github.com/theskumar/python-dotenv
+
+================================================================================
+Other Licenses
+================================================================================
+
+* PyTorch
+  BSD-3-Clause License
+  Copyright Facebook, Inc. and its affiliates
+  https://pytorch.org/
+
+* NumPy
+  BSD-3-Clause License
+  Copyright NumPy Developers
+  https://numpy.org/
+
+* FAISS (Facebook AI Similarity Search)
+  MIT License
+  Copyright Facebook, Inc. and its affiliates
+  https://github.com/facebookresearch/faiss
+
+* GLiNER (Generalist and Lightweight Named Entity Recognition)
+  Apache License 2.0
+  Copyright GLiNER Contributors
+  https://github.com/urchade/GLiNER
+
+================================================================================
+Databricks-specific Components
+================================================================================
+
+This project is designed to work with:
+- Databricks Runtime
+- Databricks Unity Catalog
+- Databricks Vector Search
+- Databricks Model Serving
+- Databricks Foundation Model APIs
+
+Please refer to Databricks Terms of Service and licensing agreements for
+usage of Databricks platform features and services.
+
+================================================================================
+Data Sources and Models
+================================================================================
+
+S&P Capital IQ data is proprietary and subject to S&P Global's terms of service.
+Users of this software are responsible for ensuring they have appropriate licenses
+and permissions to use S&P Capital IQ data.
+
+Pre-trained models used in this project (BGE, DistilBERT, DBRX, Llama) are subject
+to their respective licenses and usage terms. Please review model cards and
+licensing information before use.
+
+================================================================================
+
+For the complete license text, see the LICENSE file in the root directory
+of this project.
