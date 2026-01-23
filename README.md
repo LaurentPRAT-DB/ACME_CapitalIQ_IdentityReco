@@ -177,7 +177,33 @@ spark = get_spark_session(force_local=True)
    %pip install git+https://github.com/megagonlabs/ditto.git
    ```
 
-## Quick Start
+## Quick Start - Testing Locally
+
+**See [QUICK_START.md](QUICK_START.md) for 5-minute setup or [LOCAL_TESTING_GUIDE.md](LOCAL_TESTING_GUIDE.md) for comprehensive instructions.**
+
+### Quick Test (3 Steps)
+
+```bash
+# 1. Install and configure
+pip install -r requirements.txt
+databricks configure --profile DEFAULT
+
+# 2. Set cluster ID in .env
+cp .env.example .env
+echo "SPARK_CONNECT_CLUSTER_ID=your-cluster-id" >> .env
+
+# 3. Test connection
+python test_spark_connect.py
+python example_spark_connect.py
+```
+
+**Get your cluster ID**: Databricks UI → Compute → Select cluster → Copy ID from URL
+
+See full testing guide: [LOCAL_TESTING_GUIDE.md](LOCAL_TESTING_GUIDE.md)
+
+---
+
+## Pipeline Usage
 
 ### 1. Generate Training Data
 

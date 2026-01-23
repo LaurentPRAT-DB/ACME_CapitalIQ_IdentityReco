@@ -35,41 +35,46 @@ def _get_databricks_config_from_profile(profile: Optional[str] = None) -> dict:
     Raises:
         RuntimeError: If databricks CLI is not installed or configured
     """
+    import configparser
+
+    profile_name = profile or "DEFAULT"
+    config_file = os.path.expanduser("~/.databrickscfg")
+
+    if not os.path.exists(config_file):
+        raise RuntimeError(
+            f"Databricks config file not found: {config_file}\n"
+            f"Configure it with: databricks configure --profile {profile_name}"
+        )
+
     try:
-        # Get host from profile
-        host_cmd = ["databricks", "auth", "env", "--profile", profile or "DEFAULT"]
-        result = subprocess.run(host_cmd, capture_output=True, text=True, check=True)
+        config = configparser.ConfigParser()
+        config.read(config_file)
 
-        # Parse environment variables from output
-        env_vars = {}
-        for line in result.stdout.strip().split('\n'):
-            if '=' in line:
-                key, value = line.split('=', 1)
-                # Remove 'export ' prefix and quotes
-                key = key.replace('export ', '').strip()
-                value = value.strip().strip('"').strip("'")
-                env_vars[key] = value
+        if profile_name not in config:
+            raise RuntimeError(
+                f"Profile '{profile_name}' not found in {config_file}\n"
+                f"Available profiles: {', '.join(config.sections())}\n"
+                f"Configure it with: databricks configure --profile {profile_name}"
+            )
 
-        host = env_vars.get('DATABRICKS_HOST', '').replace('https://', '')
-        token = env_vars.get('DATABRICKS_TOKEN', '')
+        profile_config = config[profile_name]
+        host = profile_config.get('host', '').replace('https://', '').replace('http://', '').rstrip('/')
+        token = profile_config.get('token', '')
 
         if not host or not token:
-            raise RuntimeError("Failed to get credentials from Databricks CLI profile")
+            raise RuntimeError(
+                f"Profile '{profile_name}' is missing host or token\n"
+                f"Configure it with: databricks configure --profile {profile_name}"
+            )
 
         return {'host': host, 'token': token}
 
-    except FileNotFoundError:
+    except Exception as e:
+        if isinstance(e, RuntimeError):
+            raise
         raise RuntimeError(
-            "Databricks CLI is not installed. Install it with:\n"
-            "  pip install databricks-cli\n"
-            "  # or\n"
-            "  brew install databricks  # macOS"
-        )
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(
-            f"Failed to get Databricks profile: {e}\n"
-            f"Configure it with: databricks configure --profile {profile or 'DEFAULT'}\n"
-            f"Or set environment variables: DATABRICKS_HOST and DATABRICKS_TOKEN"
+            f"Failed to read Databricks config: {e}\n"
+            f"Ensure {config_file} is properly formatted"
         )
 
 
@@ -116,13 +121,11 @@ def init_spark_connect(
             databricks_token="dapi..."
         )
     """
-    # Get cluster ID
+    # Get cluster ID (optional for serverless)
     cluster = cluster_id or os.getenv("SPARK_CONNECT_CLUSTER_ID")
-    if not cluster:
-        raise ValueError(
-            "Cluster ID is required. Set SPARK_CONNECT_CLUSTER_ID environment variable "
-            "or pass cluster_id parameter"
-        )
+
+    # For serverless compute, cluster ID may not be required
+    use_serverless = cluster is None or cluster == "" or cluster == "serverless"
 
     # Get credentials - priority: explicit params > env vars > CLI profile
     if databricks_host and databricks_token:
@@ -148,11 +151,16 @@ def init_spark_connect(
     host = host.replace("https://", "").replace("http://", "")
 
     # Build Spark Connect URL
-    # Format: sc://<workspace-url>:443/;token=<token>;x-databricks-cluster-id=<cluster-id>
-    spark_remote = f"sc://{host}:443/;token={token};x-databricks-cluster-id={cluster}"
-
-    print(f"Connecting to Databricks cluster {cluster} via Spark Connect...")
-    print(f"Workspace: {host}")
+    # Format with cluster: sc://<workspace-url>:443/;token=<token>;x-databricks-cluster-id=<cluster-id>
+    # Format serverless: sc://<workspace-url>:443/;token=<token>
+    if use_serverless:
+        spark_remote = f"sc://{host}:443/;token={token}"
+        print(f"Connecting to Databricks Serverless via Spark Connect...")
+        print(f"Workspace: {host}")
+    else:
+        spark_remote = f"sc://{host}:443/;token={token};x-databricks-cluster-id={cluster}"
+        print(f"Connecting to Databricks cluster {cluster} via Spark Connect...")
+        print(f"Workspace: {host}")
 
     # Create Spark session with Spark Connect
     spark = (
