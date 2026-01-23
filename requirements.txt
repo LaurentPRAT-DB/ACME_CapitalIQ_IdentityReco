@@ -1,7 +1,11 @@
 # Core Dependencies
 pandas>=2.0.0
 numpy>=1.24.0
-pyspark>=3.4.0
+pyspark>=3.5.0  # Spark 3.5+ required for Spark Connect
+pyspark[connect]>=3.5.0  # Spark Connect support for remote Databricks execution
+
+# Databricks CLI (for authentication)
+databricks-cli>=0.18.0
 
 # Machine Learning
 torch>=2.0.0

@@ -79,12 +79,27 @@ class DataConfig:
 
 
 @dataclass
+class SparkConfig:
+    """Configuration for Spark Connect"""
+
+    # Spark Connect
+    use_spark_connect: bool = False
+    spark_remote: Optional[str] = None  # e.g., "sc://dbc-xxxxx.cloud.databricks.com:443/;token=<token>"
+    spark_connect_cluster_id: Optional[str] = None
+
+    # Spark configuration
+    spark_app_name: str = "entity-matching-pipeline"
+    spark_master: str = "local[*]"  # Used when not using Spark Connect
+
+
+@dataclass
 class Config:
     """Main configuration object"""
 
     model: ModelConfig = ModelConfig()
     pipeline: PipelineConfig = PipelineConfig()
     data: DataConfig = DataConfig()
+    spark: SparkConfig = SparkConfig()
 
     # Environment
     databricks_host: Optional[str] = None
@@ -100,6 +115,12 @@ class Config:
         config.databricks_host = os.getenv("DATABRICKS_HOST")
         config.databricks_token = os.getenv("DATABRICKS_TOKEN")
         config.mlflow_tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "databricks")
+
+        # Spark Connect configuration
+        config.spark.use_spark_connect = os.getenv("USE_SPARK_CONNECT", "false").lower() == "true"
+        config.spark.spark_remote = os.getenv("SPARK_REMOTE")
+        config.spark.spark_connect_cluster_id = os.getenv("SPARK_CONNECT_CLUSTER_ID")
+        config.spark.spark_app_name = os.getenv("SPARK_APP_NAME", "entity-matching-pipeline")
 
         # Model paths
         if model_path := os.getenv("DITTO_MODEL_PATH"):

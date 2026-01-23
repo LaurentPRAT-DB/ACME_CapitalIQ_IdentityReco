@@ -88,6 +88,73 @@ uv pip install git+https://github.com/megagonlabs/ditto.git
 uv sync
 ```
 
+### Spark Connect Setup (Local Development with Remote Databricks)
+
+To run Spark locally while executing on a remote Databricks cluster:
+
+1. **Install and configure Databricks CLI:**
+```bash
+# Install Databricks CLI
+pip install databricks-cli
+
+# Configure authentication (stores credentials in ~/.databrickscfg)
+databricks configure --profile DEFAULT
+
+# Enter your workspace URL and token when prompted:
+# - Host: https://dbc-xxxxx-xxxx.cloud.databricks.com
+# - Token: [from User Settings > Developer > Access Tokens]
+
+# Verify configuration
+databricks workspace ls /
+```
+
+2. **Get your Cluster ID:**
+- Go to Databricks workspace → Compute → Select your cluster
+- Copy the Cluster ID from the URL or Configuration tab
+- Format: `1234-567890-abcdefgh`
+
+3. **Create environment file:**
+```bash
+cp .env.example .env
+```
+
+4. **Configure environment variables in `.env`:**
+```bash
+# Databricks CLI profile name
+DATABRICKS_PROFILE=DEFAULT
+
+# Cluster ID from step 2
+SPARK_CONNECT_CLUSTER_ID=1234-567890-abcdefgh
+
+# Enable Spark Connect
+USE_SPARK_CONNECT=true
+```
+
+5. **Test connection:**
+```python
+from dotenv import load_dotenv
+from src.utils.spark_utils import get_spark_session
+
+load_dotenv()
+
+# Connect using CLI profile
+spark = get_spark_session()
+
+# Verify connection
+print(f"Spark version: {spark.version}")
+spark.sql("SELECT current_database()").show()
+```
+
+**Using Multiple Profiles:**
+```bash
+# Configure different environments
+databricks configure --profile dev
+databricks configure --profile prod
+
+# Use specific profile
+spark = get_spark_session(profile="dev")
+```
+
 ### Databricks Setup
 
 1. Create a Databricks workspace with:
@@ -160,21 +227,64 @@ print(f"Method: {result['match_method']}")
 
 ### Batch Processing with Spark
 
-```python
-from pyspark.sql.functions import pandas_udf
-from src.pipeline.hybrid_pipeline import HybridMatchingPipeline
+#### Using Spark Connect (Local Development)
 
-# Initialize pipeline
+```python
+from src.utils.spark_utils import get_spark_session
+from src.pipeline.hybrid_pipeline import HybridMatchingPipeline
+from pyspark.sql.functions import pandas_udf, col
+from pyspark.sql.types import StructType, StructField, StringType, DoubleType
+import pandas as pd
+
+# Initialize Spark Connect session (executes on remote Databricks cluster)
+spark = get_spark_session()
+
+# Initialize matching pipeline
 pipeline = HybridMatchingPipeline()
 
-# Create UDF for Spark
-@pandas_udf("struct<ciq_id:string,confidence:double,method:string>")
-def match_entity_udf(entities: pd.Series) -> pd.Series:
-    return entities.apply(lambda x: pipeline.match(x))
+# Define result schema
+result_schema = StructType([
+    StructField("ciq_id", StringType(), True),
+    StructField("confidence", DoubleType(), True),
+    StructField("method", StringType(), True)
+])
 
-# Apply to DataFrame
-matched_df = source_df.withColumn("match_result", match_entity_udf(col("entity")))
+# Create Pandas UDF
+@pandas_udf(result_schema)
+def match_entity_udf(company_names: pd.Series, tickers: pd.Series) -> pd.DataFrame:
+    results = []
+    for name, ticker in zip(company_names, tickers):
+        entity = {"company_name": name, "ticker": ticker}
+        result = pipeline.match(entity)
+        results.append({
+            "ciq_id": result["ciq_id"],
+            "confidence": result["confidence"],
+            "method": result["match_method"]
+        })
+    return pd.DataFrame(results)
+
+# Apply to DataFrame (computation runs on Databricks cluster)
+matched_df = source_df.withColumn(
+    "match_result",
+    match_entity_udf(col("company_name"), col("ticker"))
+)
+
+# Write to Unity Catalog
+matched_df.write.format("delta").mode("overwrite").saveAsTable("main.entity_matching.results")
 ```
+
+#### Using Local Spark
+
+```python
+from src.utils.spark_utils import get_spark_session
+
+# Force local Spark execution
+spark = get_spark_session(force_local=True)
+
+# Rest of the code remains the same
+```
+
+See `notebooks/04_spark_connect_example.py` for a complete example.
 
 ### Deploying to Databricks Model Serving
 
