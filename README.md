@@ -93,12 +93,12 @@ Choose your path based on your role and objective:
 ### 🚀 For Quick Start (5 minutes)
 **Goal**: Test entity matching locally with sample data
 
-→ **[GETTING_STARTED.md](GETTING_STARTED.md)** - Installation, basic example, and quick validation
+→ **[GETTING_STARTED.md](documentation/GETTING_STARTED.md)** - Installation, basic example, and quick validation
 
 ### 🧪 For Local Development & Testing
 **Goal**: Develop and test pipeline components locally before Databricks deployment
 
-→ **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Comprehensive local testing with Spark Connect
+→ **[TESTING_GUIDE.md](documentation/TESTING_GUIDE.md)** - Comprehensive local testing with Spark Connect
 
 **Quick Commands**:
 ```bash
@@ -116,7 +116,7 @@ python example.py
 ### 🏭 For Production Deployment on Databricks
 **Goal**: Deploy complete pipeline to production on Databricks
 
-→ **[PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md)** - Step-by-step production deployment guide
+→ **[PRODUCTION_DEPLOYMENT.md](documentation/PRODUCTION_DEPLOYMENT.md)** - Step-by-step production deployment guide
 
 **Deployment Phases**:
 1. Unity Catalog setup (30 min)
@@ -128,13 +128,13 @@ python example.py
 ### 📊 For Business Stakeholders
 **Goal**: Understand business case, ROI, and success metrics
 
-→ **[executive-summary.md](executive-summary.md)** - Business case and ROI analysis
-→ **[genai-identity-reconciliation-poc.md](genai-identity-reconciliation-poc.md)** - Full POC specification
+→ **[executive-summary.md](documentation/executive-summary.md)** - Business case and ROI analysis
+→ **[genai-identity-reconciliation-poc.md](documentation/genai-identity-reconciliation-poc.md)** - Full POC specification
 
 ### 🔬 For ML Engineers & Data Scientists
 **Goal**: Understand models, training process, and evaluation
 
-→ **[entity-matching-models-summary.md](entity-matching-models-summary.md)** - Model comparison and research
+→ **[entity-matching-models-summary.md](documentation/entity-matching-models-summary.md)** - Model comparison and research
 → **[notebooks/02_train_ditto_model.py](notebooks/02_train_ditto_model.py)** - Ditto training notebook
 
 ---
@@ -199,8 +199,8 @@ Entity Matching for S&P Capital IQ - Quick Example
 
 ### Next Steps
 
-- **Local testing**: See [TESTING_GUIDE.md](TESTING_GUIDE.md)
-- **Production deployment**: See [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md)
+- **Local testing**: See [TESTING_GUIDE.md](documentation/TESTING_GUIDE.md)
+- **Production deployment**: See [PRODUCTION_DEPLOYMENT.md](documentation/PRODUCTION_DEPLOYMENT.md)
 - **Train Ditto model**: See [notebooks/02_train_ditto_model.py](notebooks/02_train_ditto_model.py)
 
 ---
@@ -210,13 +210,16 @@ Entity Matching for S&P Capital IQ - Quick Example
 ```
 MET_CapitalIQ_identityReco/
 ├── README.md                          # This file - main entry point
-├── GETTING_STARTED.md                 # Quick start guide (5 min)
-├── TESTING_GUIDE.md                   # Local testing comprehensive guide
-├── PRODUCTION_DEPLOYMENT.md           # Production deployment on Databricks
 │
-├── executive-summary.md               # Business case & ROI
-├── genai-identity-reconciliation-poc.md  # Full POC specification
-├── entity-matching-models-summary.md  # Model comparison & research
+├── documentation/                     # All documentation files
+│   ├── GETTING_STARTED.md             # Quick start guide (5 min)
+│   ├── TESTING_GUIDE.md               # Local testing comprehensive guide
+│   ├── PRODUCTION_DEPLOYMENT.md       # Production deployment on Databricks
+│   ├── DOCUMENTATION_INDEX.md         # Documentation navigation guide
+│   │
+│   ├── executive-summary.md           # Business case & ROI
+│   ├── genai-identity-reconciliation-poc.md  # Full POC specification
+│   └── entity-matching-models-summary.md  # Model comparison & research
 │
 ├── example.py                         # Quick start example (local)
 ├── example_spark_connect.py           # Spark Connect example (remote)
@@ -404,7 +407,7 @@ pytest tests/ -v
 pytest tests/ --cov=src --cov-report=html
 ```
 
-See [TESTING_GUIDE.md](TESTING_GUIDE.md) for comprehensive testing instructions.
+See [TESTING_GUIDE.md](documentation/TESTING_GUIDE.md) for comprehensive testing instructions.
 
 ---
 
@@ -550,14 +553,14 @@ See [TESTING_GUIDE.md](TESTING_GUIDE.md#troubleshooting) for detailed troublesho
 ## 📖 Additional Resources
 
 ### Documentation
-- [GETTING_STARTED.md](GETTING_STARTED.md) - 5-minute quick start
-- [TESTING_GUIDE.md](TESTING_GUIDE.md) - Comprehensive local testing
-- [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md) - Production deployment guide
+- [GETTING_STARTED.md](documentation/GETTING_STARTED.md) - 5-minute quick start
+- [TESTING_GUIDE.md](documentation/TESTING_GUIDE.md) - Comprehensive local testing
+- [PRODUCTION_DEPLOYMENT.md](documentation/PRODUCTION_DEPLOYMENT.md) - Production deployment guide
 
 ### Business & Research
-- [executive-summary.md](executive-summary.md) - Business case & ROI
-- [genai-identity-reconciliation-poc.md](genai-identity-reconciliation-poc.md) - Full POC spec
-- [entity-matching-models-summary.md](entity-matching-models-summary.md) - Model comparison
+- [executive-summary.md](documentation/executive-summary.md) - Business case & ROI
+- [genai-identity-reconciliation-poc.md](documentation/genai-identity-reconciliation-poc.md) - Full POC spec
+- [entity-matching-models-summary.md](documentation/entity-matching-models-summary.md) - Model comparison
 
 ### Notebooks
 - [notebooks/01_quick_start.py](notebooks/01_quick_start.py) - Databricks quick start
@@ -614,16 +617,16 @@ limitations under the License.
 
 | I want to... | Go to... |
 |--------------|----------|
-| Get started quickly | [GETTING_STARTED.md](GETTING_STARTED.md) |
-| Test locally | [TESTING_GUIDE.md](TESTING_GUIDE.md) |
-| Deploy to production | [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md) |
-| Understand the business case | [executive-summary.md](executive-summary.md) |
-| Learn about the models | [entity-matching-models-summary.md](entity-matching-models-summary.md) |
+| Get started quickly | [GETTING_STARTED.md](documentation/GETTING_STARTED.md) |
+| Test locally | [TESTING_GUIDE.md](documentation/TESTING_GUIDE.md) |
+| Deploy to production | [PRODUCTION_DEPLOYMENT.md](documentation/PRODUCTION_DEPLOYMENT.md) |
+| Understand the business case | [executive-summary.md](documentation/executive-summary.md) |
+| Learn about the models | [entity-matching-models-summary.md](documentation/entity-matching-models-summary.md) |
 | Train Ditto model | [notebooks/02_train_ditto_model.py](notebooks/02_train_ditto_model.py) |
-| See full POC details | [genai-identity-reconciliation-poc.md](genai-identity-reconciliation-poc.md) |
+| See full POC details | [genai-identity-reconciliation-poc.md](documentation/genai-identity-reconciliation-poc.md) |
 
 ---
 
-**Ready to start?** → [GETTING_STARTED.md](GETTING_STARTED.md)
+**Ready to start?** → [GETTING_STARTED.md](documentation/GETTING_STARTED.md)
 
 **Target: 93-95% F1 Score | $0.01/entity | 85%+ Auto-Match Rate**
