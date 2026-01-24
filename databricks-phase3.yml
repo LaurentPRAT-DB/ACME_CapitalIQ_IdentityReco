@@ -5,10 +5,12 @@ bundle:
   name: entity_matching
 
 # Include other YAML files
-# PHASE 1: Setup and Training
-# Deploy with: databricks bundle deploy -t dev --config-file databricks-phase1.yml
+# PHASE 3: Complete Deployment (All Resources)
+# Deploy with: databricks bundle deploy -t dev --config-file databricks-phase3.yml
 include:
-  - resources/jobs_setup_training.yml  # Phase 1: Setup and training jobs only
+  - resources/jobs_setup_training.yml  # Phase 1: Setup and training
+  - resources/model_serving.yml        # Phase 2: Model serving endpoint
+  - resources/jobs_pipeline.yml        # Phase 3: Production pipelines
 
 # Variables that can be overridden
 variables:
@@ -58,6 +60,14 @@ targets:
         user_name: ${workspace.current_user.userName}
       - level: CAN_VIEW
         group_name: users
+    resources:
+      model_serving_endpoints:
+        ditto_matcher:
+          permissions:
+            - level: CAN_MANAGE
+              user_name: ${workspace.current_user.userName}
+            - level: CAN_QUERY
+              user_name: ${workspace.current_user.userName}
 
   # Staging target
   staging:

@@ -10,6 +10,26 @@ The deployment is split into three phases to ensure proper dependency management
 2. **Phase 2**: Model Serving (deploy trained model endpoint)
 3. **Phase 3**: Production Pipelines (deploy scheduled matching jobs)
 
+## Deployment Configuration Files
+
+Each phase has a dedicated configuration file:
+
+| Phase | Config File | Command |
+|-------|-------------|---------|
+| Phase 1 | `databricks-phase1.yml` | `./deploy-phase.sh 1 dev` |
+| Phase 2 | `databricks-phase2.yml` | `./deploy-phase.sh 2 dev` |
+| Phase 3 | `databricks-phase3.yml` | `./deploy-phase.sh 3 dev` |
+
+**Benefits of separate config files:**
+- No need to edit/uncomment sections
+- Clear separation of deployment phases
+- Easy to re-run specific phases
+- Automated validation before deployment
+- Reduces deployment errors
+
+**How it works:**
+The `deploy-phase.sh` script copies the appropriate phase configuration to `databricks.yml` and runs validation + deployment.
+
 ## Prerequisites
 
 - Databricks CLI installed and configured
@@ -24,23 +44,16 @@ The deployment is split into three phases to ensure proper dependency management
 
 ### Steps
 
-1. **Edit databricks.yml** - Ensure only Phase 1 is uncommented:
-```yaml
-include:
-  - resources/jobs_setup_training.yml  # Phase 1: Setup and training
-  # - resources/model_serving.yml      # Phase 2: Model serving (enable after training)
-  # - resources/jobs_pipeline.yml      # Phase 3: Production pipelines (enable after serving)
+1. **Deploy Phase 1** (includes validation):
+```bash
+./deploy-phase.sh 1 dev
 ```
 
-2. **Validate the bundle**:
-```bash
-databricks bundle validate -t dev
-```
-
-3. **Deploy Phase 1**:
-```bash
-databricks bundle deploy -t dev
-```
+The script will:
+- Copy `databricks-phase1.yml` to `databricks.yml`
+- Validate the configuration
+- Prompt for confirmation
+- Deploy to the dev environment
 
 4. **Run the setup job**:
 ```bash
@@ -66,26 +79,13 @@ After the training job completes, verify the model exists:
 ## Phase 2: Model Serving
 
 ### What Gets Deployed
-- Ditto model serving endpoint
+- Ditto model serving endpoint (plus all Phase 1 resources)
 
 ### Steps
 
-1. **Edit databricks.yml** - Enable Phase 2:
-```yaml
-include:
-  - resources/jobs_setup_training.yml  # Phase 1: Setup and training
-  - resources/model_serving.yml        # Phase 2: Model serving (enable after training)
-  # - resources/jobs_pipeline.yml      # Phase 3: Production pipelines (enable after serving)
-```
-
-2. **Validate the bundle**:
+1. **Deploy Phase 2**:
 ```bash
-databricks bundle validate -t dev
-```
-
-3. **Deploy Phase 2**:
-```bash
-databricks bundle deploy -t dev
+./deploy-phase.sh 2 dev
 ```
 
 4. **Wait for endpoint to be ready**:
@@ -101,25 +101,13 @@ The model serving endpoint will take several minutes to provision and become rea
 ### What Gets Deployed
 - Scheduled production matching pipeline (`entity_matching_pipeline`)
 - Ad-hoc matching job (`adhoc_entity_matching`)
+- (Plus all Phase 1 and Phase 2 resources)
 
 ### Steps
 
-1. **Edit databricks.yml** - Enable Phase 3:
-```yaml
-include:
-  - resources/jobs_setup_training.yml  # Phase 1: Setup and training
-  - resources/model_serving.yml        # Phase 2: Model serving
-  - resources/jobs_pipeline.yml        # Phase 3: Production pipelines
-```
-
-2. **Validate the bundle**:
+1. **Deploy Phase 3**:
 ```bash
-databricks bundle validate -t dev
-```
-
-3. **Deploy Phase 3**:
-```bash
-databricks bundle deploy -t dev
+./deploy-phase.sh 3 dev
 ```
 
 4. **Verify deployment**:
@@ -135,9 +123,7 @@ The dev environment is configured with restricted permissions:
 
 **Bundle-level permissions:**
 - CAN_MANAGE: `laurent.prat@databricks.com` (current user)
-- CAN_VIEW: Service principal `b1edc2eb-4f83-4d2c-a4b6-5f626e3024dd`
 - CAN_VIEW: Group `users`
-- CAN_MANAGE: Group `databricks_workshop`
 
 **Model Serving permissions:**
 - CAN_MANAGE: `laurent.prat@databricks.com`
@@ -163,11 +149,23 @@ If artifacts fail to build:
 
 ## Rolling Back
 
-To roll back a phase:
+To roll back to a previous phase, simply redeploy using an earlier phase:
 
-1. Edit `databricks.yml` to comment out the phase
-2. Run `databricks bundle deploy -t dev`
-3. Manually delete resources if needed via `databricks bundle destroy -t dev`
+```bash
+# Roll back from Phase 3 to Phase 2
+./deploy-phase.sh 2 dev
+
+# Roll back from Phase 2 to Phase 1
+./deploy-phase.sh 1 dev
+```
+
+**Note:** This removes resources from the bundle definition but doesn't delete them. To fully clean up:
+
+```bash
+# Destroy all resources and start fresh
+databricks bundle destroy -t dev
+./deploy-phase.sh 1 dev
+```
 
 ## Next Steps
 
