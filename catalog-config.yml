@@ -1,0 +1,80 @@
+# Unity Catalog Configuration
+# Defines catalog settings for each environment
+
+environments:
+  dev:
+    catalog_name: laurent_prat_entity_matching_dev
+    owner: laurent.prat@databricks.com
+    comment: "Development catalog for entity matching (laurent.prat)"
+    properties:
+      purpose: entity_matching
+      environment: development
+      owner_team: field_engineering
+
+    # Schemas to create
+    schemas:
+      - name: bronze
+        comment: "Bronze layer - raw source data"
+      - name: silver
+        comment: "Silver layer - cleansed and standardized data"
+      - name: gold
+        comment: "Gold layer - business-level aggregates"
+      - name: models
+        comment: "Machine learning models registry"
+
+    # Additional permissions (beyond owner)
+    permissions:
+      - principal: users
+        type: group
+        privileges: [USE_CATALOG, USE_SCHEMA]
+
+  staging:
+    catalog_name: entity_matching_staging
+    owner: laurent.prat@databricks.com  # Change to service principal in production
+    comment: "Staging catalog for entity matching"
+    properties:
+      purpose: entity_matching
+      environment: staging
+      owner_team: field_engineering
+
+    schemas:
+      - name: bronze
+        comment: "Bronze layer - raw source data"
+      - name: silver
+        comment: "Silver layer - cleansed and standardized data"
+      - name: gold
+        comment: "Gold layer - business-level aggregates"
+      - name: models
+        comment: "Machine learning models registry"
+
+    permissions:
+      - principal: data-engineers
+        type: group
+        privileges: [USE_CATALOG, USE_SCHEMA, SELECT]
+
+  prod:
+    catalog_name: entity_matching
+    owner: laurent.prat@databricks.com  # Change to service principal in production
+    comment: "Production catalog for entity matching to S&P Capital IQ"
+    properties:
+      purpose: entity_matching
+      environment: production
+      owner_team: field_engineering
+
+    schemas:
+      - name: bronze
+        comment: "Bronze layer - raw source data"
+      - name: silver
+        comment: "Silver layer - cleansed and standardized data"
+      - name: gold
+        comment: "Gold layer - business-level aggregates"
+      - name: models
+        comment: "Machine learning models registry"
+
+    permissions:
+      - principal: data-engineers
+        type: group
+        privileges: [USE_CATALOG, USE_SCHEMA, SELECT]
+      - principal: data-analysts
+        type: group
+        privileges: [USE_CATALOG, USE_SCHEMA, SELECT]

@@ -4,21 +4,23 @@ This guide walks through the phased deployment process for the Entity Matching p
 
 ## Overview
 
-The deployment is split into three phases to ensure proper dependency management:
+The deployment is split into four phases to ensure proper dependency management:
 
-1. **Phase 1**: Setup and Training (create catalog, train model)
+0. **Phase 0**: Create Unity Catalog (one-time setup)
+1. **Phase 1**: Setup and Training (create schemas, train model)
 2. **Phase 2**: Model Serving (deploy trained model endpoint)
 3. **Phase 3**: Production Pipelines (deploy scheduled matching jobs)
 
 ## Deployment Configuration Files
 
-Each phase has a dedicated configuration file:
+Each phase has dedicated setup:
 
-| Phase | Config File | Command |
+| Phase | Description | Command |
 |-------|-------------|---------|
-| Phase 1 | `databricks-phase1.yml` | `./deploy-phase.sh 1 dev` |
-| Phase 2 | `databricks-phase2.yml` | `./deploy-phase.sh 2 dev` |
-| Phase 3 | `databricks-phase3.yml` | `./deploy-phase.sh 3 dev` |
+| Phase 0 | Create Unity Catalog | `./deploy-phase0.sh dev` |
+| Phase 1 | Setup & Training | `databricks bundle deploy -t dev` |
+| Phase 2 | Model Serving | (Enable in databricks.yml, then deploy) |
+| Phase 3 | Production Pipelines | (Enable in databricks.yml, then deploy) |
 
 **Benefits of separate config files:**
 - No need to edit/uncomment sections
@@ -33,34 +35,105 @@ The `deploy-phase.sh` script copies the appropriate phase configuration to `data
 ## Prerequisites
 
 - Databricks CLI installed and configured
+- Python 3.7+ with `databricks-sdk` installed
 - Access to a Databricks workspace
-- Proper permissions for the target environment
+- Proper permissions for the target environment (catalog creation rights)
 
-## Phase 1: Setup and Training
+## Phase 0: Create Unity Catalog (One-time Setup)
 
-### What Gets Deployed
-- Unity Catalog setup job (`setup_unity_catalog`)
-- Model training job (`train_ditto_model`)
+### What Gets Created
+- Unity Catalog for the environment
+- Catalog ownership and permissions
+
+### Why Phase 0 is Separate
+Phase 0 creates the Unity Catalog using the Databricks SDK/API, which is more reliable than SQL for catalog creation. This phase is idempotent and safe to run multiple times.
+
+**Important:** Catalog names cannot contain special characters like `@` or `.`. Phase 0 ensures the catalog name is properly sanitized.
 
 ### Steps
 
-1. **Deploy Phase 1** (includes validation):
+1. **Install dependencies** (if not already installed):
 ```bash
-./deploy-phase.sh 1 dev
+pip install databricks-sdk
+```
+
+2. **Run Phase 0 setup**:
+```bash
+./deploy-phase0.sh dev
 ```
 
 The script will:
-- Copy `databricks-phase1.yml` to `databricks.yml`
-- Validate the configuration
-- Prompt for confirmation
-- Deploy to the dev environment
+- Validate prerequisites
+- Create the Unity Catalog with name: `laurent_prat_entity_matching_dev`
+- Set ownership to: `laurent.prat@databricks.com`
+- Grant necessary permissions
+- Verify catalog accessibility
 
-4. **Run the setup job**:
+3. **Verify catalog creation**:
+```bash
+# Via CLI
+databricks catalogs get laurent_prat_entity_matching_dev
+
+# Or check in the Databricks UI under Data > Catalogs
+```
+
+### Configuration
+
+Catalog settings are defined in `catalog-config.yml`:
+- Catalog names for each environment
+- Owners and permissions
+- Schema structure
+
+### For Other Environments
+
+For staging or prod:
+```bash
+./deploy-phase0.sh staging
+./deploy-phase0.sh prod
+```
+
+**Note:** Update the owner in `deploy-phase0.sh` to use service principals for production environments.
+
+## Phase 1: Setup and Training
+
+### Prerequisites
+- Phase 0 must be completed (Unity Catalog created)
+- Catalog `laurent_prat_entity_matching_dev` exists
+
+### What Gets Deployed
+- Unity Catalog setup job (`setup_unity_catalog`) - Creates schemas
+- Model training job (`train_ditto_model`) - Trains and registers model
+
+### Steps
+
+1. **Validate the bundle**:
+```bash
+databricks bundle validate -t dev
+```
+
+2. **Deploy Phase 1**:
+```bash
+databricks bundle deploy -t dev
+```
+
+This deploys two jobs:
+- `[dev] Entity Matching - Setup Unity Catalog` - Creates bronze/silver/gold/models schemas
+- `[dev] Entity Matching - Train Ditto Model` - Trains and registers the model
+
+3. **Run the setup job** (creates schemas):
 ```bash
 # Via UI: Go to Workflows and run "[dev] Entity Matching - Setup Unity Catalog"
 # Or via CLI:
-databricks jobs run-now --job-name "[dev] Entity Matching - Setup Unity Catalog"
+databricks jobs list | grep "Setup Unity Catalog"
+# Then run by job ID
 ```
+
+4. **Verify schemas created**:
+Check in the Databricks UI that these schemas exist:
+- `laurent_prat_entity_matching_dev.bronze`
+- `laurent_prat_entity_matching_dev.silver`
+- `laurent_prat_entity_matching_dev.gold`
+- `laurent_prat_entity_matching_dev.models`
 
 5. **Run the training job**:
 ```bash
