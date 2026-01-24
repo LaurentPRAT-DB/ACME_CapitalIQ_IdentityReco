@@ -69,3 +69,7 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Databricks Asset Bundle
+.databricks/
+.bundle/

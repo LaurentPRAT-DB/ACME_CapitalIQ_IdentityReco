@@ -116,7 +116,20 @@ python example.py
 ### 🏭 For Production Deployment on Databricks
 **Goal**: Deploy complete pipeline to production on Databricks
 
-→ **[PRODUCTION_DEPLOYMENT.md](documentation/PRODUCTION_DEPLOYMENT.md)** - Step-by-step production deployment guide
+**Option 1: Databricks Asset Bundle (Recommended - Automated)**
+
+→ **[BUNDLE_QUICK_START.md](BUNDLE_QUICK_START.md)** - Deploy in 5 minutes with CLI
+→ **[DATABRICKS_BUNDLE_DEPLOYMENT.md](documentation/DATABRICKS_BUNDLE_DEPLOYMENT.md)** - Complete bundle guide
+
+```bash
+# Quick deploy
+databricks bundle deploy -t dev
+databricks bundle run setup_unity_catalog -t dev
+```
+
+**Option 2: Manual Deployment (Step-by-Step)**
+
+→ **[PRODUCTION_DEPLOYMENT.md](documentation/PRODUCTION_DEPLOYMENT.md)** - Manual deployment guide
 
 **Deployment Phases**:
 1. Unity Catalog setup (30 min)

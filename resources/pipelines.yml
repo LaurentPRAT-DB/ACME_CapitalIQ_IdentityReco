@@ -1,0 +1,47 @@
+# Delta Live Tables Pipelines (Alternative to Jobs)
+# Uncomment to use DLT instead of scheduled jobs
+
+# resources:
+#   pipelines:
+#     entity_matching_dlt:
+#       name: "[${bundle.target}] Entity Matching DLT Pipeline"
+#
+#       target: ${var.catalog_name}
+#
+#       libraries:
+#         - notebook:
+#             path: ./notebooks/dlt/entity_matching_pipeline.py
+#
+#       clusters:
+#         - label: default
+#           autoscale:
+#             min_workers: 2
+#             max_workers: 16
+#             mode: ENHANCED
+#           node_type_id: ${var.cluster_node_type}
+#           spark_version: ${var.cluster_spark_version}
+#
+#       configuration:
+#         catalog_name: ${var.catalog_name}
+#         ditto_endpoint: entity-matching-ditto-${bundle.target}
+#
+#       continuous: false
+#
+#       development: ${bundle.target == 'dev'}
+#
+#       edition: ADVANCED
+#
+#       channel: CURRENT
+#
+#       notifications:
+#         - email_recipients:
+#             - ${workspace.current_user.userName}@databricks.com
+#           alerts:
+#             - on-update-failure
+#             - on-flow-failure
+#
+#       permissions:
+#         - level: CAN_VIEW
+#           group_name: data-engineers
+#         - level: CAN_MANAGE
+#           user_name: ${workspace.current_user.userName}

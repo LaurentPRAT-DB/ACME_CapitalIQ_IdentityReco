@@ -1,0 +1,150 @@
+# Databricks Asset Bundle Configuration
+# Entity Matching for S&P Capital IQ Identity Reconciliation
+
+bundle:
+  name: entity_matching
+
+# Include other YAML files
+# PHASED DEPLOYMENT INSTRUCTIONS:
+# Phase 1: Uncomment only jobs_setup_training.yml, deploy with -t dev-setup
+# Phase 2: Uncomment model_serving.yml, deploy with -t dev-serving
+# Phase 3: Uncomment all, deploy with -t dev
+include:
+  - resources/jobs_setup_training.yml  # Phase 1: Setup and training
+  # - resources/model_serving.yml      # Phase 2: Model serving (enable after training)
+  # - resources/jobs_pipeline.yml      # Phase 3: Production pipelines (enable after serving)
+
+# Variables that can be overridden
+variables:
+  # Catalog and schema configuration
+  catalog_name:
+    description: Unity Catalog name
+    default: entity_matching
+
+  # Cluster configuration
+  cluster_node_type:
+    description: Node type for compute clusters
+    default: i3.xlarge
+
+  cluster_spark_version:
+    description: Databricks Runtime version
+    default: 13.3.x-scala2.12
+
+  # Model configuration
+  ditto_model_version:
+    description: Ditto model version to deploy
+    default: "1"
+
+  # Job schedule
+  matching_job_schedule:
+    description: Cron schedule for matching job
+    default: "0 0 2 * * ?" # Daily at 2 AM
+
+# Workspace configuration
+workspace:
+  profile: DEFAULT
+  root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+
+# Targets (environments)
+targets:
+  # Development target - used for all phases
+  dev:
+    mode: development
+    default: true
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/dev
+    variables:
+      catalog_name: ${workspace.current_user.userName}_entity_matching_dev
+    run_as:
+      user_name: ${workspace.current_user.userName}
+    permissions:
+      - level: CAN_MANAGE
+        user_name: ${workspace.current_user.userName}
+      - level: CAN_VIEW
+        service_principal_name: b1edc2eb-4f83-4d2c-a4b6-5f626e3024dd
+      - level: CAN_VIEW
+        group_name: users
+      - level: CAN_MANAGE
+        group_name: databricks_workshop
+    # Phase 2: Uncomment this section when enabling model serving
+    # resources:
+    #   model_serving_endpoints:
+    #     ditto_matcher:
+    #       permissions:
+    #         - level: CAN_MANAGE
+    #           user_name: ${workspace.current_user.userName}
+    #         - level: CAN_QUERY
+    #           user_name: ${workspace.current_user.userName}
+
+  # Staging target
+  staging:
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/staging
+    variables:
+      catalog_name: entity_matching_staging
+    run_as:
+      service_principal_name: ${var.staging_service_principal}
+    permissions:
+      - level: CAN_MANAGE
+        user_name: ${workspace.current_user.userName}
+      - level: CAN_VIEW
+        group_name: data-engineers
+    resources:
+      model_serving_endpoints:
+        ditto_matcher:
+          permissions:
+            - level: CAN_MANAGE
+              user_name: ${workspace.current_user.userName}
+            - level: CAN_QUERY
+              user_name: ${workspace.current_user.userName}
+            - level: CAN_QUERY
+              group_name: data-engineers
+
+  # Production target
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/prod
+    variables:
+      catalog_name: entity_matching
+      cluster_node_type: i3.2xlarge
+    run_as:
+      service_principal_name: ${var.prod_service_principal}
+    permissions:
+      - level: CAN_MANAGE
+        user_name: ${workspace.current_user.userName}
+      - level: CAN_VIEW
+        group_name: data-engineers
+    resources:
+      model_serving_endpoints:
+        ditto_matcher:
+          permissions:
+            - level: CAN_MANAGE
+              user_name: ${workspace.current_user.userName}
+            - level: CAN_QUERY
+              user_name: ${workspace.current_user.userName}
+            - level: CAN_QUERY
+              group_name: data-engineers
+
+# Artifacts (Python packages, libraries)
+# Temporarily commented out for deployment testing
+# artifacts:
+#   default:
+#     type: whl
+#     path: .
+#     build: python3 setup.py bdist_wheel
+
+# Sync configuration
+sync:
+  exclude:
+    - .git
+    - .venv
+    - __pycache__
+    - "*.pyc"
+    - .env
+    - .env.*
+    - data/
+    - models/
+    - "*.log"
+    - .DS_Store

@@ -1,0 +1,31 @@
+# Model Serving Endpoints for Entity Matching
+resources:
+  model_serving_endpoints:
+    # Ditto model serving endpoint
+    ditto_matcher:
+      name: ditto-em-${bundle.target}
+
+      config:
+        served_entities:
+          - name: ditto-${bundle.target}
+            entity_name: ${var.catalog_name}.models.entity_matching_ditto
+            entity_version: ${var.ditto_model_version}
+            workload_size: Small
+            scale_to_zero_enabled: true
+            environment_vars:
+              ENABLE_MLFLOW_TRACING: "true"
+
+        traffic_config:
+          routes:
+            - served_model_name: ditto-${bundle.target}
+              traffic_percentage: 100
+
+      tags:
+        - key: project
+          value: entity_matching
+        - key: environment
+          value: ${bundle.target}
+        - key: model_type
+          value: ditto_matcher
+
+      # Permissions are defined per target in databricks.yml

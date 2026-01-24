@@ -1,0 +1,143 @@
+# Production Pipeline Jobs - Phase 2 Deployment
+# Deploy these after model serving endpoint is deployed
+
+resources:
+  jobs:
+    # Production matching pipeline - Daily entity matching job
+    entity_matching_pipeline:
+      name: "[${bundle.target}] Entity Matching - Production Pipeline"
+
+      schedule:
+        quartz_cron_expression: ${var.matching_job_schedule}
+        timezone_id: "America/Los_Angeles"
+        pause_status: UNPAUSED
+
+      tasks:
+        - task_key: ingest_source_entities
+          notebook_task:
+            notebook_path: ../notebooks/pipeline/01_ingest_source_entities.py
+            base_parameters:
+              catalog_name: ${var.catalog_name}
+              source_table: ${var.catalog_name}.bronze.source_entities
+          new_cluster:
+            node_type_id: ${var.cluster_node_type}
+            spark_version: ${var.cluster_spark_version}
+            num_workers: 2
+            autoscale:
+              min_workers: 2
+              max_workers: 8
+          timeout_seconds: 3600
+
+        - task_key: exact_match
+          depends_on:
+            - task_key: ingest_source_entities
+          notebook_task:
+            notebook_path: ../notebooks/pipeline/02_exact_match.py
+            base_parameters:
+              catalog_name: ${var.catalog_name}
+          new_cluster:
+            node_type_id: ${var.cluster_node_type}
+            spark_version: ${var.cluster_spark_version}
+            num_workers: 4
+          timeout_seconds: 1800
+
+        - task_key: vector_search_and_ditto
+          depends_on:
+            - task_key: exact_match
+          notebook_task:
+            notebook_path: ../notebooks/pipeline/03_vector_search_ditto.py
+            base_parameters:
+              catalog_name: ${var.catalog_name}
+              ditto_endpoint: ditto-em-${bundle.target}
+              vector_search_endpoint: entity-matching-vs-${bundle.target}
+          new_cluster:
+            node_type_id: ${var.cluster_node_type}
+            spark_version: ${var.cluster_spark_version}
+            num_workers: 8
+            autoscale:
+              min_workers: 4
+              max_workers: 16
+          libraries:
+            - pypi:
+                package: sentence-transformers==2.2.2
+          timeout_seconds: 7200
+
+        - task_key: write_results
+          depends_on:
+            - task_key: vector_search_and_ditto
+          notebook_task:
+            notebook_path: ../notebooks/pipeline/04_write_results.py
+            base_parameters:
+              catalog_name: ${var.catalog_name}
+              output_table: ${var.catalog_name}.gold.matched_entities
+          new_cluster:
+            node_type_id: ${var.cluster_node_type}
+            spark_version: ${var.cluster_spark_version}
+            num_workers: 4
+          timeout_seconds: 1800
+
+        - task_key: generate_metrics
+          depends_on:
+            - task_key: write_results
+          notebook_task:
+            notebook_path: ../notebooks/pipeline/05_generate_metrics.py
+            base_parameters:
+              catalog_name: ${var.catalog_name}
+          new_cluster:
+            node_type_id: ${var.cluster_node_type}
+            spark_version: ${var.cluster_spark_version}
+            num_workers: 1
+          timeout_seconds: 600
+
+      max_concurrent_runs: 1
+      email_notifications:
+        on_success:
+          - ${workspace.current_user.userName}@databricks.com
+        on_failure:
+          - ${workspace.current_user.userName}@databricks.com
+        on_duration_warning_threshold_exceeded:
+          - ${workspace.current_user.userName}@databricks.com
+      timeout_seconds: 14400 # 4 hours total
+      tags:
+        project: entity_matching
+        environment: ${bundle.target}
+        type: production
+
+    # Ad-hoc matching job - Run matching on demand
+    adhoc_entity_matching:
+      name: "[${bundle.target}] Entity Matching - Ad-hoc Run"
+
+      parameters:
+        - name: source_table
+          default: ${var.catalog_name}.bronze.source_entities
+        - name: output_table
+          default: ${var.catalog_name}.gold.matched_entities_adhoc
+        - name: date_filter
+          default: ""
+
+      tasks:
+        - task_key: run_matching
+          notebook_task:
+            notebook_path: ../notebooks/03_full_pipeline_example.py
+            base_parameters:
+              catalog_name: ${var.catalog_name}
+              source_table: "{{job.parameters.source_table}}"
+              output_table: "{{job.parameters.output_table}}"
+              date_filter: "{{job.parameters.date_filter}}"
+          new_cluster:
+            node_type_id: ${var.cluster_node_type}
+            spark_version: ${var.cluster_spark_version}
+            num_workers: 8
+            autoscale:
+              min_workers: 4
+              max_workers: 16
+          libraries:
+            - pypi:
+                package: sentence-transformers==2.2.2
+          timeout_seconds: 7200
+
+      max_concurrent_runs: 3
+      tags:
+        project: entity_matching
+        environment: ${bundle.target}
+        type: adhoc
