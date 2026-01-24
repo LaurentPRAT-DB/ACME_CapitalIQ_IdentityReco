@@ -15,7 +15,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install transformers==4.36.0 torch==2.1.0 sentence-transformers==2.2.2 scikit-learn mlflow
+# MAGIC %pip install transformers>=4.36.0 torch>=2.1.0 sentence-transformers>=2.3.0 scikit-learn mlflow
 
 # COMMAND ----------
 
@@ -46,8 +46,12 @@ print(f"Output path: {output_path}")
 # Debug: Check if workspace_path exists
 print(f"\nChecking workspace path...")
 try:
-    files = dbutils.fs.ls(workspace_path.replace("/Workspace", ""))
-    print(f"Files in workspace_path: {[f.name for f in files[:10]]}")
+    # Use os.listdir for workspace paths, not dbutils.fs.ls
+    if os.path.exists(workspace_path):
+        files = os.listdir(workspace_path)
+        print(f"Files in workspace_path: {files[:10]}")
+    else:
+        print(f"Warning: workspace_path does not exist: {workspace_path}")
 except Exception as e:
     print(f"Error listing workspace_path: {e}")
 

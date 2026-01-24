@@ -17,7 +17,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install transformers==4.36.0 sentence-transformers==2.2.2 torch==2.1.0 faiss-cpu scikit-learn tqdm
+# MAGIC %pip install transformers>=4.36.0 sentence-transformers>=2.3.0 torch>=2.1.0 faiss-cpu scikit-learn tqdm
 
 # COMMAND ----------
 

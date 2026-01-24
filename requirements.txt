@@ -8,9 +8,9 @@ pyspark[connect]>=3.5.0  # Spark Connect support for remote Databricks execution
 databricks-cli>=0.18.0
 
 # Machine Learning
-torch>=2.0.0
-transformers>=4.30.0
-sentence-transformers>=2.2.0
+torch>=2.1.0
+transformers>=4.36.0
+sentence-transformers>=2.3.0
 
 # Databricks SDK
 databricks-sdk>=0.18.0
