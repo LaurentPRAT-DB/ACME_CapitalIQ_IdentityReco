@@ -15,6 +15,8 @@
 """
 Spark session utilities with Spark Connect support
 """
+from __future__ import annotations
+
 import os
 import subprocess
 from typing import Optional

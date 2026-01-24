@@ -1,6 +1,8 @@
 """
 Gold standard validator for evaluating pipeline accuracy
 """
+from __future__ import annotations
+
 import pandas as pd
 from typing import Dict, List
 from .metrics import calculate_pipeline_metrics, print_metrics

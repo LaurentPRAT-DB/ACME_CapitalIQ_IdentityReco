@@ -1,6 +1,8 @@
 """
 Generate training data for Ditto model from S&P 500 gold standard
 """
+from __future__ import annotations
+
 import pandas as pd
 import random
 from typing import List, Dict, Tuple, Optional

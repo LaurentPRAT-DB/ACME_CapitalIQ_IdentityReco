@@ -15,6 +15,8 @@
 """
 Configuration management for entity matching pipeline
 """
+from __future__ import annotations
+
 import os
 from dataclasses import dataclass
 from typing import Optional

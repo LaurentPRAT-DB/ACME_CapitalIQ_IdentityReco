@@ -1,6 +1,8 @@
 """
 Evaluation metrics for entity matching
 """
+from __future__ import annotations
+
 from typing import List, Dict
 from sklearn.metrics import (
     accuracy_score,

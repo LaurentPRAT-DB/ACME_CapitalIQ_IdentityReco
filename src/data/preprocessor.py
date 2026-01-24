@@ -1,6 +1,8 @@
 """
 Data preprocessing and normalization utilities
 """
+from __future__ import annotations
+
 import re
 import pandas as pd
 from typing import Dict, Optional

@@ -1,6 +1,8 @@
 """
 BGE embeddings model for semantic similarity
 """
+from __future__ import annotations
+
 import numpy as np
 from typing import List, Union
 from sentence_transformers import SentenceTransformer

@@ -1,6 +1,8 @@
 """
 Ditto entity matcher - fine-tuned BERT for entity matching
 """
+from __future__ import annotations
+
 import os
 import pandas as pd
 import torch

@@ -15,7 +15,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install transformers>=4.36.0 torch>=2.1.0 sentence-transformers>=2.3.0 scikit-learn mlflow
+# MAGIC %pip install transformers>=4.40.0 torch>=2.1.0 sentence-transformers>=2.3.0 scikit-learn mlflow
 
 # COMMAND ----------
 
@@ -73,6 +73,9 @@ from src.data.loader import DataLoader
 from src.data.training_generator import TrainingDataGenerator
 from src.models.ditto_matcher import DittoMatcher
 import mlflow
+
+# Initialize data loader
+loader = DataLoader()
 
 print("\n✅ Successfully imported all modules")
 

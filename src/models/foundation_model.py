@@ -1,6 +1,8 @@
 """
 Foundation Model (DBRX/Llama) for entity matching fallback
 """
+from __future__ import annotations
+
 import json
 import re
 from typing import Dict, List, Optional, Tuple

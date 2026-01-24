@@ -1,6 +1,8 @@
 """
 Vector search index for candidate retrieval
 """
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
 from typing import List, Dict, Tuple, Optional

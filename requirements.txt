@@ -9,7 +9,7 @@ databricks-cli>=0.18.0
 
 # Machine Learning
 torch>=2.1.0
-transformers>=4.36.0
+transformers>=4.40.0
 sentence-transformers>=2.3.0
 
 # Databricks SDK

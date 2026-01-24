@@ -2,6 +2,8 @@
 Hybrid entity matching pipeline orchestrator
 Combines exact matching, vector search, Ditto, and Foundation Models
 """
+from __future__ import annotations
+
 from typing import Dict, List, Optional
 from ..data.preprocessor import EntityPreprocessor, create_entity_features
 from ..models.embeddings import BGEEmbeddings

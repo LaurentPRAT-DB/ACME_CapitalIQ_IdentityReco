@@ -1,6 +1,8 @@
 """
 Data loading utilities for various sources
 """
+from __future__ import annotations
+
 import pandas as pd
 from typing import Optional, Dict, List
 from pathlib import Path
