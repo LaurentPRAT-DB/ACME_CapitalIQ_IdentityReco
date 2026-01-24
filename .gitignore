@@ -40,15 +40,14 @@ ENV/
 .env
 .env.local
 
-# Data
-data/
+# Data (exclude top-level data/ but allow src/data/)
+/data/
 *.csv
 *.parquet
-*.json
 *.pkl
 
-# Models
-models/
+# Models (exclude top-level models/ but allow src/models/)
+/models/
 checkpoints/
 *.pt
 *.pth
