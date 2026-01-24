@@ -122,6 +122,8 @@ targets:
 
 # Sync configuration
 sync:
+  include:
+    - src/**
   exclude:
     - .git
     - .venv
@@ -129,7 +131,7 @@ sync:
     - "*.pyc"
     - .env
     - .env.*
-    - /data/
-    - /models/
+    - data
+    - models
     - "*.log"
     - .DS_Store
