@@ -73,3 +73,5 @@ Thumbs.db
 # Databricks Asset Bundle
 .databricks/
 .bundle/
+databricks.yml.backup
+production-config.local.yml

@@ -15,14 +15,18 @@
 
 | File | Purpose |
 |------|---------|
-| `scripts/create_catalog.py` | Python script to create Unity Catalog via Databricks SDK |
-| `deploy-phase0.sh` | Bash wrapper for Phase 0 execution |
-| `catalog-config.yml` | Configuration for catalogs across environments |
-| `notebooks/setup/01_create_unity_catalog.py` | Updated notebook that creates schemas (not catalog) |
-| `resources/jobs_setup_training.yml` | Phase 1 jobs (setup + training) |
-| `resources/jobs_pipeline.yml` | Phase 3 jobs (production pipelines) |
-| `QUICK_START.md` | Quick reference for deployment |
-| `scripts/README.md` | Documentation for scripts |
+| `deploy-phase.sh` | Unified deployment script for all phases (0-4) |
+| `databricks-phase0.yml` through `databricks-phase4.yml` | Phase-specific bundle configurations |
+| `production-config.yml` | Template for production service principal configuration |
+| `notebooks/setup/01_create_unity_catalog.py` | Creates Unity Catalog and schemas |
+| `notebooks/setup/02_create_reference_tables.py` | Creates tables and loads reference data |
+| `resources/jobs_phase0_catalog.yml` | Phase 0: Catalog setup job |
+| `resources/jobs_phase1_data.yml` | Phase 1: Data load job |
+| `resources/jobs_phase2_training.yml` | Phase 2: Model training job |
+| `resources/jobs_phase3_serving.yml` | Phase 3: Model serving endpoint |
+| `resources/jobs_phase4_pipeline.yml` | Phase 4: Production pipeline jobs |
+| `DEPLOYMENT_GUIDE.md` | Complete deployment guide |
+| `PRODUCTION_SETUP.md` | Production deployment with service principals |
 
 ### Files Modified
 
@@ -33,18 +37,18 @@
 
 ## Deployment Phases
 
-### Phase 0: Create Unity Catalog ✅ Ready to Run
+### Phase 0: Catalog Setup ✅ Ready to Run
 ```bash
-./deploy-phase0.sh dev
+./deploy-phase.sh 0 dev
 ```
 
 **What it does**:
 - Creates catalog `laurent_prat_entity_matching_dev`
-- Sets owner to `laurent.prat@databricks.com`
-- Grants necessary permissions
+- Creates schemas: bronze, silver, gold, models
+- Grants permissions to account users
 - Idempotent - safe to run multiple times
 
-**When to run**: Once before first deployment, or when setting up a new environment
+**When to run**: First step in deployment process
 
 ### Phase 1: Setup and Training ✅ Currently Deployed
 ```bash
@@ -109,9 +113,9 @@ Removed:
 - Scripts and documentation ready
 
 ⚠️ **Needs Action**:
-1. Run Phase 0 to create catalog:
+1. Run Phase 0 to create catalog and schemas:
    ```bash
-   ./deploy-phase0.sh dev
+   ./deploy-phase.sh 0 dev
    ```
 
 2. Re-run the setup job:

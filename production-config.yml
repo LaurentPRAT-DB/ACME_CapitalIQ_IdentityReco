@@ -1,0 +1,107 @@
+# Production Configuration for Databricks Asset Bundle
+# This file contains environment-specific configuration for staging and production
+#
+# Usage:
+#   1. Copy this file to production-config.local.yml
+#   2. Update the service principal IDs for your environment
+#   3. The .gitignore ensures production-config.local.yml is not committed
+#
+# To use this configuration:
+#   - Update databricks-phase*.yml files to reference these variables
+#   - Set environment variables before deployment:
+#     export STAGING_SERVICE_PRINCIPAL_ID="your-staging-sp-id"
+#     export PROD_SERVICE_PRINCIPAL_ID="your-prod-sp-id"
+#   - Or use Databricks bundle variables override
+
+# Service Principal Configuration
+# Service principals are recommended for production deployments
+
+staging:
+  service_principal_id: "${STAGING_SERVICE_PRINCIPAL_ID}"
+  # Example: "12345678-1234-1234-1234-123456789abc"
+  # To create a service principal:
+  #   1. Go to Workspace Settings > Identity and Access > Service Principals
+  #   2. Click "Add Service Principal"
+  #   3. Copy the Application ID (this is the service principal ID)
+  #   4. Grant appropriate permissions to the service principal
+
+production:
+  service_principal_id: "${PROD_SERVICE_PRINCIPAL_ID}"
+  # Example: "87654321-4321-4321-4321-cba987654321"
+  # Best practice: Use a different service principal for production
+
+# Additional Production Settings
+# These can be customized per environment
+
+cluster_sizes:
+  dev:
+    node_type: "i3.xlarge"
+    min_workers: 2
+    max_workers: 8
+  staging:
+    node_type: "i3.xlarge"
+    min_workers: 2
+    max_workers: 16
+  prod:
+    node_type: "i3.2xlarge"
+    min_workers: 4
+    max_workers: 32
+
+catalog_names:
+  dev: "laurent_prat_entity_matching_dev"
+  staging: "entity_matching_staging"
+  prod: "entity_matching"
+
+# Model Serving Configuration
+model_serving:
+  dev:
+    workload_size: "Small"
+    scale_to_zero: true
+  staging:
+    workload_size: "Medium"
+    scale_to_zero: true
+  prod:
+    workload_size: "Large"
+    scale_to_zero: false
+
+# Job Schedules (Quartz cron format)
+schedules:
+  matching_pipeline:
+    dev: "manual"  # No automatic schedule in dev
+    staging: "0 0 2 * * ?"  # Daily at 2 AM
+    prod: "0 0 1 * * ?"     # Daily at 1 AM
+
+# Notifications
+notifications:
+  dev:
+    on_failure: ["${workspace.current_user.userName}@databricks.com"]
+  staging:
+    on_failure: ["data-engineering-team@company.com"]
+    on_success: ["data-engineering-team@company.com"]
+  prod:
+    on_failure: ["data-engineering-team@company.com", "on-call@company.com"]
+    on_success: ["data-engineering-team@company.com"]
+    on_duration_warning: ["data-engineering-team@company.com"]
+
+# Notes:
+#
+# Setting Service Principal IDs:
+#
+# Option 1: Environment Variables (Recommended)
+#   export STAGING_SERVICE_PRINCIPAL_ID="12345678-1234-1234-1234-123456789abc"
+#   export PROD_SERVICE_PRINCIPAL_ID="87654321-4321-4321-4321-cba987654321"
+#   ./deploy-phase.sh 0 staging
+#
+# Option 2: Databricks CLI Variables
+#   databricks bundle deploy -t staging \
+#     --var="staging_service_principal_id=12345678-1234-1234-1234-123456789abc"
+#
+# Option 3: Create production-config.local.yml
+#   Copy this file and replace ${VARIABLE} with actual values
+#
+# Security Best Practices:
+# - Never commit service principal IDs to git
+# - Use different service principals for staging and production
+# - Grant minimum required permissions to service principals
+# - Rotate service principal secrets regularly
+# - Use workspace-level service principals, not account-level

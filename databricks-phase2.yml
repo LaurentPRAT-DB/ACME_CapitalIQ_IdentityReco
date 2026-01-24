@@ -60,7 +60,7 @@ targets:
       - level: CAN_MANAGE
         user_name: ${workspace.current_user.userName}
       - level: CAN_VIEW
-        group_name: users
+        group_name: account users
 
   # Staging target
   staging:
@@ -70,12 +70,12 @@ targets:
     variables:
       catalog_name: entity_matching_staging
     run_as:
-      service_principal_name: ${var.staging_service_principal}
+      service_principal_name: ${var.staging_service_principal_id}
     permissions:
       - level: CAN_MANAGE
         user_name: ${workspace.current_user.userName}
       - level: CAN_VIEW
-        group_name: data-engineers
+        group_name: account users
 
   # Production target
   prod:
@@ -86,12 +86,12 @@ targets:
       catalog_name: entity_matching
       cluster_node_type: i3.2xlarge
     run_as:
-      service_principal_name: ${var.prod_service_principal}
+      service_principal_name: ${var.prod_service_principal_id}
     permissions:
       - level: CAN_MANAGE
         user_name: ${workspace.current_user.userName}
       - level: CAN_VIEW
-        group_name: data-engineers
+        group_name: account users
 
 # Sync configuration
 sync:

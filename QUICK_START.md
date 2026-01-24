@@ -5,40 +5,34 @@
 For a complete dev environment deployment, run these commands in order:
 
 ```bash
-# Phase 0: Create Unity Catalog (one-time setup)
-./deploy-phase0.sh dev
+# Make script executable (first time only)
+chmod +x deploy-phase.sh
 
-# Phase 1: Deploy setup and training jobs
-databricks bundle deploy -t dev
+# Phase 0: Create Unity Catalog and schemas
+./deploy-phase.sh 0 dev
 
-# Run the setup job (creates schemas)
-# → Go to Workflows UI and run "[dev] Entity Matching - Setup Unity Catalog"
+# Phase 1: Create tables and load reference data
+./deploy-phase.sh 1 dev
 
-# Run the training job (trains and registers model)
-# → Go to Workflows UI and run "[dev] Entity Matching - Train Ditto Model"
+# Phase 2: Train Ditto model
+./deploy-phase.sh 2 dev
 
-# Phase 2: Enable model serving
-# Edit databricks.yml:
-#   - Uncomment: - resources/model_serving.yml
-#   - Uncomment the resources.model_serving_endpoints section in dev target
-databricks bundle deploy -t dev
+# Phase 3: Deploy model serving endpoint
+./deploy-phase.sh 3 dev
 
-# Wait for model serving endpoint to be ready (~5-10 minutes)
-
-# Phase 3: Enable production pipelines
-# Edit databricks.yml:
-#   - Uncomment: - resources/jobs_pipeline.yml
-databricks bundle deploy -t dev
+# Phase 4: Deploy production pipeline
+./deploy-phase.sh 4 dev
 ```
 
 ## File Locations
 
-- **Phase 0 Script**: `./deploy-phase0.sh`
-- **Catalog Config**: `catalog-config.yml`
-- **Bundle Config**: `databricks.yml`
-- **Phase 1 Resources**: `resources/jobs_setup_training.yml`
-- **Phase 2 Resources**: `resources/model_serving.yml`
-- **Phase 3 Resources**: `resources/jobs_pipeline.yml`
+- **Deployment Script**: `./deploy-phase.sh`
+- **Phase Config Files**: `databricks-phase0.yml` through `databricks-phase4.yml`
+- **Phase 0 Resources**: `resources/jobs_phase0_catalog.yml`
+- **Phase 1 Resources**: `resources/jobs_phase1_data.yml`
+- **Phase 2 Resources**: `resources/jobs_phase2_training.yml`
+- **Phase 3 Resources**: `resources/jobs_phase3_serving.yml`
+- **Phase 4 Resources**: `resources/jobs_phase4_pipeline.yml`
 
 ## Key Catalog Names
 
@@ -52,7 +46,7 @@ databricks bundle deploy -t dev
 
 ### "Catalog does not exist"
 ```bash
-./deploy-phase0.sh dev
+./deploy-phase.sh 0 dev
 ```
 
 ### "Endpoint name too long"
@@ -68,14 +62,14 @@ databricks models list --catalog laurent_prat_entity_matching_dev
 ### Clean slate restart
 ```bash
 databricks bundle destroy -t dev
-./deploy-phase0.sh dev
-databricks bundle deploy -t dev
+./deploy-phase.sh 0 dev
+./deploy-phase.sh 1 dev
 ```
 
 ## Permissions (Dev Environment)
 
-- **CAN_MANAGE**: laurent.prat@databricks.com
-- **CAN_VIEW**: Group "users"
+- **CAN_MANAGE**: laurent.prat@databricks.com (current user)
+- **CAN_VIEW**: Group "account users"
 
 ## Next Steps
 

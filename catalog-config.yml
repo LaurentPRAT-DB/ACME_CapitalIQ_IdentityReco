@@ -1,5 +1,16 @@
-# Unity Catalog Configuration
-# Defines catalog settings for each environment
+# Unity Catalog Configuration - REFERENCE ONLY
+# This file is kept for reference but is NOT actively used in deployment
+#
+# Catalog creation is now handled by:
+#   - Phase 0 deployment: ./deploy-phase.sh 0 <env>
+#   - Notebook: notebooks/setup/01_create_unity_catalog.py
+#   - Configuration: databricks-phase0.yml
+#
+# For production configuration (service principals), see:
+#   - production-config.yml
+#   - PRODUCTION_SETUP.md
+#
+# Legacy: This file was used with scripts/create_catalog.py (deprecated)
 
 environments:
   dev:

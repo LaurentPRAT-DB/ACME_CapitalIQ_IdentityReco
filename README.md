@@ -116,27 +116,42 @@ python example.py
 ### 🏭 For Production Deployment on Databricks
 **Goal**: Deploy complete pipeline to production on Databricks
 
-**Option 1: Databricks Asset Bundle (Recommended - Automated)**
+**Option 1: Phased Deployment with Script (Recommended - New!)**
+
+→ **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Complete phased deployment guide
+
+```bash
+# Automated phased deployment (5 phases)
+chmod +x deploy-phase.sh
+
+./deploy-phase.sh 0 dev  # Phase 0: Catalog Setup
+./deploy-phase.sh 1 dev  # Phase 1: Data Load
+./deploy-phase.sh 2 dev  # Phase 2: Model Training
+./deploy-phase.sh 3 dev  # Phase 3: Model Deployment
+./deploy-phase.sh 4 dev  # Phase 4: Production Pipeline
+```
+
+**Deployment Phases**:
+- **Phase 0**: Catalog Setup (10 min) - Creates Unity Catalog and schemas
+- **Phase 1**: Data Load (15 min) - Creates tables and loads reference data
+- **Phase 2**: Model Training (2-4 hours) - Trains Ditto model
+- **Phase 3**: Model Deployment (10 min) - Deploys serving endpoint
+- **Phase 4**: Production Pipeline (15 min) - Deploys production jobs
+
+**Option 2: Databricks Asset Bundle (Single deployment)**
 
 → **[BUNDLE_QUICK_START.md](BUNDLE_QUICK_START.md)** - Deploy in 5 minutes with CLI
 → **[DATABRICKS_BUNDLE_DEPLOYMENT.md](documentation/DATABRICKS_BUNDLE_DEPLOYMENT.md)** - Complete bundle guide
 
 ```bash
-# Quick deploy
+# Single deployment (all phases at once)
 databricks bundle deploy -t dev
 databricks bundle run setup_unity_catalog -t dev
 ```
 
-**Option 2: Manual Deployment (Step-by-Step)**
+**Option 3: Manual Deployment (Step-by-Step)**
 
 → **[PRODUCTION_DEPLOYMENT.md](documentation/PRODUCTION_DEPLOYMENT.md)** - Manual deployment guide
-
-**Deployment Phases**:
-1. Unity Catalog setup (30 min)
-2. Deploy Ditto model to Model Serving (45 min)
-3. Configure Vector Search (30 min)
-4. Create scheduled matching job (1 hour)
-5. Set up monitoring & alerts (30 min)
 
 ### 📊 For Business Stakeholders
 **Goal**: Understand business case, ROI, and success metrics
