@@ -1,249 +1,294 @@
-# Phased Deployment Guide
+# Deployment Guide - Entity Matching for S&P Capital IQ
 
-This guide walks through the phased deployment process for the Entity Matching project using Databricks Asset Bundles.
+This guide outlines the step-by-step deployment process for the Entity Matching project using Databricks Asset Bundles.
 
 ## Overview
 
-The deployment is split into four phases to ensure proper dependency management:
+The deployment is split into 5 phases, each building on the previous one:
 
-0. **Phase 0**: Create Unity Catalog (one-time setup)
-1. **Phase 1**: Setup and Training (create schemas, train model)
-2. **Phase 2**: Model Serving (deploy trained model endpoint)
-3. **Phase 3**: Production Pipelines (deploy scheduled matching jobs)
-
-## Deployment Configuration Files
-
-Each phase has dedicated setup:
-
-| Phase | Description | Command |
-|-------|-------------|---------|
-| Phase 0 | Create Unity Catalog | `./deploy-phase0.sh dev` |
-| Phase 1 | Setup & Training | `databricks bundle deploy -t dev` |
-| Phase 2 | Model Serving | (Enable in databricks.yml, then deploy) |
-| Phase 3 | Production Pipelines | (Enable in databricks.yml, then deploy) |
-
-**Benefits of separate config files:**
-- No need to edit/uncomment sections
-- Clear separation of deployment phases
-- Easy to re-run specific phases
-- Automated validation before deployment
-- Reduces deployment errors
-
-**How it works:**
-The `deploy-phase.sh` script copies the appropriate phase configuration to `databricks.yml` and runs validation + deployment.
+- **Phase 0**: Catalog Setup - Creates Unity Catalog and schemas
+- **Phase 1**: Data Load - Creates tables and loads reference data
+- **Phase 2**: Model Training - Trains the Ditto matching model
+- **Phase 3**: Model Deployment - Deploys model to serving endpoint
+- **Phase 4**: Production Pipeline - Deploys production matching jobs
 
 ## Prerequisites
 
 - Databricks CLI installed and configured
-- Python 3.7+ with `databricks-sdk` installed
 - Access to a Databricks workspace
-- Proper permissions for the target environment (catalog creation rights)
+- Appropriate permissions to create catalogs, schemas, and resources
+- Databricks Runtime 13.3 LTS or higher
 
-## Phase 0: Create Unity Catalog (One-time Setup)
+## Phase-by-Phase Deployment
 
-### What Gets Created
-- Unity Catalog for the environment
-- Catalog ownership and permissions
+### Phase 0: Catalog Setup
 
-### Why Phase 0 is Separate
-Phase 0 creates the Unity Catalog using the Databricks SDK/API, which is more reliable than SQL for catalog creation. This phase is idempotent and safe to run multiple times.
+**Purpose**: Creates the Unity Catalog and schemas (bronze, silver, gold, models)
 
-**Important:** Catalog names cannot contain special characters like `@` or `.`. Phase 0 ensures the catalog name is properly sanitized.
-
-### Steps
-
-1. **Install dependencies** (if not already installed):
+**Deploy**:
 ```bash
-pip install databricks-sdk
+databricks bundle deploy -t dev --config-file databricks-phase0.yml
 ```
 
-2. **Run Phase 0 setup**:
+**Run**:
 ```bash
-./deploy-phase0.sh dev
+databricks bundle run setup_catalog -t dev --config-file databricks-phase0.yml
 ```
 
-The script will:
-- Validate prerequisites
-- Create the Unity Catalog with name: `laurent_prat_entity_matching_dev`
-- Set ownership to: `laurent.prat@databricks.com`
-- Grant necessary permissions
-- Verify catalog accessibility
+**What it does**:
+- Creates Unity Catalog: `laurent_prat_entity_matching_dev` (dev) or `entity_matching` (prod)
+- Creates schemas: `bronze`, `silver`, `gold`, `models`
+- Grants permissions to account users
 
-3. **Verify catalog creation**:
-```bash
-# Via CLI
-databricks catalogs get laurent_prat_entity_matching_dev
-
-# Or check in the Databricks UI under Data > Catalogs
+**Verify**:
+```sql
+SHOW SCHEMAS IN `laurent_prat_entity_matching_dev`;
 ```
 
-### Configuration
+---
 
-Catalog settings are defined in `catalog-config.yml`:
-- Catalog names for each environment
-- Owners and permissions
-- Schema structure
+### Phase 1: Data Load
 
-### For Other Environments
+**Purpose**: Creates tables and loads sample reference data
 
-For staging or prod:
+**Prerequisites**: Phase 0 must be completed
+
+**Deploy**:
 ```bash
-./deploy-phase0.sh staging
-./deploy-phase0.sh prod
+databricks bundle deploy -t dev --config-file databricks-phase1.yml
 ```
 
-**Note:** Update the owner in `deploy-phase0.sh` to use service principals for production environments.
-
-## Phase 1: Setup and Training
-
-### Prerequisites
-- Phase 0 must be completed (Unity Catalog created)
-- Catalog `laurent_prat_entity_matching_dev` exists
-
-### What Gets Deployed
-- Unity Catalog setup job (`setup_unity_catalog`) - Creates schemas
-- Model training job (`train_ditto_model`) - Trains and registers model
-
-### Steps
-
-1. **Validate the bundle**:
+**Run**:
 ```bash
-databricks bundle validate -t dev
+databricks bundle run load_reference_data -t dev --config-file databricks-phase1.yml
 ```
 
-2. **Deploy Phase 1**:
-```bash
-databricks bundle deploy -t dev
+**What it does**:
+- Creates bronze tables: `spglobal_reference`, `source_entities`
+- Creates gold table: `matched_entities`
+- Creates views: `review_queue`, `daily_stats`
+- Loads sample S&P 500 reference data
+- Grants SELECT permissions
+
+**Verify**:
+```sql
+SELECT COUNT(*) FROM `laurent_prat_entity_matching_dev`.bronze.spglobal_reference;
+DESCRIBE TABLE `laurent_prat_entity_matching_dev`.gold.matched_entities;
 ```
 
-This deploys two jobs:
-- `[dev] Entity Matching - Setup Unity Catalog` - Creates bronze/silver/gold/models schemas
-- `[dev] Entity Matching - Train Ditto Model` - Trains and registers the model
+---
 
-3. **Run the setup job** (creates schemas):
+### Phase 2: Model Training
+
+**Purpose**: Generates training data and trains the Ditto model
+
+**Prerequisites**: Phases 0 and 1 must be completed
+
+**Deploy**:
 ```bash
-# Via UI: Go to Workflows and run "[dev] Entity Matching - Setup Unity Catalog"
-# Or via CLI:
-databricks jobs list | grep "Setup Unity Catalog"
-# Then run by job ID
+databricks bundle deploy -t dev --config-file databricks-phase2.yml
 ```
 
-4. **Verify schemas created**:
-Check in the Databricks UI that these schemas exist:
-- `laurent_prat_entity_matching_dev.bronze`
-- `laurent_prat_entity_matching_dev.silver`
-- `laurent_prat_entity_matching_dev.gold`
-- `laurent_prat_entity_matching_dev.models`
-
-5. **Run the training job**:
+**Run**:
 ```bash
-# Via UI: Go to Workflows and run "[dev] Entity Matching - Train Ditto Model"
-# Or via CLI:
-databricks jobs run-now --job-name "[dev] Entity Matching - Train Ditto Model"
+databricks bundle run train_ditto_model -t dev --config-file databricks-phase2.yml
 ```
 
-6. **Verify model registration**:
-After the training job completes, verify the model exists:
-```bash
-# Check in Unity Catalog that the model is registered
-# Model name: laurent.prat@databricks.com_entity_matching_dev.models.entity_matching_ditto
+**What it does**:
+- Generates positive and negative training pairs (1000 each)
+- Trains Ditto model on entity matching task
+- Registers model in Unity Catalog as `<catalog>.models.entity_matching_ditto`
+
+**Note**: This phase may take several hours depending on cluster configuration
+
+**Verify**:
+```sql
+SELECT * FROM `laurent_prat_entity_matching_dev`.models.models
+WHERE name = 'entity_matching_ditto';
 ```
 
-## Phase 2: Model Serving
+---
 
-### What Gets Deployed
-- Ditto model serving endpoint (plus all Phase 1 resources)
+### Phase 3: Model Deployment
 
-### Steps
+**Purpose**: Deploys the trained model to a serving endpoint
 
-1. **Deploy Phase 2**:
+**Prerequisites**: Phases 0, 1, and 2 must be completed
+
+**Deploy**:
 ```bash
-./deploy-phase.sh 2 dev
+databricks bundle deploy -t dev --config-file databricks-phase3.yml
 ```
 
-4. **Wait for endpoint to be ready**:
-The model serving endpoint will take several minutes to provision and become ready. Monitor in the UI under "Serving".
+**What it does**:
+- Creates model serving endpoint: `ditto-em-dev`
+- Configures endpoint with Small workload size
+- Enables scale-to-zero
+- Sets up traffic routing
 
-5. **Test the endpoint**:
+**Note**: This is a deployment phase only - no job to run
+
+**Verify**:
+- Check serving endpoints in Databricks UI
+- Or use CLI: `databricks serving-endpoints list`
+
+---
+
+### Phase 4: Production Pipeline
+
+**Purpose**: Deploys production matching pipeline jobs
+
+**Prerequisites**: Phases 0, 1, 2, and 3 must be completed
+
+**Deploy**:
 ```bash
-# Test via UI or API call once endpoint is ready
+databricks bundle deploy -t dev --config-file databricks-phase4.yml
 ```
 
-## Phase 3: Production Pipelines
-
-### What Gets Deployed
-- Scheduled production matching pipeline (`entity_matching_pipeline`)
-- Ad-hoc matching job (`adhoc_entity_matching`)
-- (Plus all Phase 1 and Phase 2 resources)
-
-### Steps
-
-1. **Deploy Phase 3**:
+**Run** (scheduled job):
 ```bash
-./deploy-phase.sh 3 dev
+databricks bundle run entity_matching_pipeline -t dev --config-file databricks-phase4.yml
 ```
 
-4. **Verify deployment**:
-Check that all jobs are visible in the Workflows UI:
-- `[dev] Entity Matching - Setup Unity Catalog`
-- `[dev] Entity Matching - Train Ditto Model`
-- `[dev] Entity Matching - Production Pipeline`
-- `[dev] Entity Matching - Ad-hoc Run`
+**Run** (ad-hoc job):
+```bash
+databricks bundle run adhoc_entity_matching -t dev --config-file databricks-phase4.yml
+```
 
-## Permissions (Dev Environment)
+**What it does**:
+- Deploys scheduled daily matching pipeline
+- Deploys ad-hoc matching job for on-demand runs
+- Pipeline includes:
+  1. Ingest source entities
+  2. Exact match on identifiers
+  3. Vector search + Ditto matching
+  4. Write results to gold table
+  5. Generate metrics
 
-The dev environment is configured with restricted permissions:
+**Verify**:
+```sql
+SELECT * FROM `laurent_prat_entity_matching_dev`.gold.matched_entities LIMIT 10;
+SELECT * FROM `laurent_prat_entity_matching_dev`.gold.daily_stats;
+```
 
-**Bundle-level permissions:**
-- CAN_MANAGE: `laurent.prat@databricks.com` (current user)
-- CAN_VIEW: Group `users`
+---
 
-**Model Serving permissions:**
-- CAN_MANAGE: `laurent.prat@databricks.com`
-- CAN_QUERY: `laurent.prat@databricks.com`
+## Complete Deployment (All Phases)
+
+To deploy all phases at once (for environments where prerequisites are met):
+
+```bash
+# Deploy Phase 0
+databricks bundle deploy -t dev --config-file databricks-phase0.yml
+databricks bundle run setup_catalog -t dev --config-file databricks-phase0.yml
+
+# Deploy Phase 1
+databricks bundle deploy -t dev --config-file databricks-phase1.yml
+databricks bundle run load_reference_data -t dev --config-file databricks-phase1.yml
+
+# Deploy Phase 2
+databricks bundle deploy -t dev --config-file databricks-phase2.yml
+databricks bundle run train_ditto_model -t dev --config-file databricks-phase2.yml
+
+# Deploy Phase 3 (no run command - just deployment)
+databricks bundle deploy -t dev --config-file databricks-phase3.yml
+
+# Deploy Phase 4
+databricks bundle deploy -t dev --config-file databricks-phase4.yml
+```
+
+---
+
+## Environment Targets
+
+### Development (`dev`)
+- Catalog: `laurent_prat_entity_matching_dev`
+- User-owned resources
+- Default target
+
+### Staging (`staging`)
+- Catalog: `entity_matching_staging`
+- Service principal owned (requires `var.staging_service_principal`)
+- Production mode
+
+### Production (`prod`)
+- Catalog: `entity_matching`
+- Service principal owned (requires `var.prod_service_principal`)
+- Production mode with larger clusters
+
+To deploy to a specific target:
+```bash
+databricks bundle deploy -t staging --config-file databricks-phase0.yml
+```
+
+---
 
 ## Troubleshooting
 
-### Model Not Found Error
-If you see "RegisteredModel does not exist" during Phase 2:
-- Ensure Phase 1 training job completed successfully
-- Verify the model is registered in Unity Catalog
-- Check the model name matches: `${workspace.current_user.userName}_entity_matching_dev.models.entity_matching_ditto`
+### Issue: GRANT syntax errors
+- **Solution**: Ensure you're using the updated notebooks with correct GRANT syntax (schema-level vs table-level privileges)
 
-### Endpoint Name Too Long
-If you see "Endpoint name must be maximum 63 characters":
-- This is fixed in `model_serving.yml` with the shorter name `ditto-em-${bundle.target}`
+### Issue: Libraries field warning
+- **Solution**: Ensure `libraries` is inside `new_cluster` block, not at `job_cluster` level
 
-### Python Wheel Build Errors
-If artifacts fail to build:
-- The training job uses `python_wheel_task` which requires the wheel to be built
-- Currently artifacts are commented out in databricks.yml
-- Uncomment and fix the build command if needed
+### Issue: VIEW COMMENT syntax error
+- **Solution**: Ensure COMMENT comes before AS clause in CREATE VIEW statements
 
-## Rolling Back
+### Issue: Missing model for Phase 3
+- **Error**: Model not found for serving endpoint
+- **Solution**: Ensure Phase 2 completed successfully and model is registered in Unity Catalog
 
-To roll back to a previous phase, simply redeploy using an earlier phase:
+### Issue: PRIMARY KEY constraint errors
+- **Solution**: Ensure using Databricks Runtime 13.3 LTS or higher
+
+---
+
+## Resource Files
+
+Each phase includes specific resource files:
+
+- `resources/jobs_phase0_catalog.yml` - Catalog setup job
+- `resources/jobs_phase1_data.yml` - Data load job
+- `resources/jobs_phase2_training.yml` - Model training job
+- `resources/jobs_phase3_serving.yml` - Model serving endpoint
+- `resources/jobs_phase4_pipeline.yml` - Production pipeline jobs
+
+---
+
+## Cleanup
+
+To remove deployed resources:
 
 ```bash
-# Roll back from Phase 3 to Phase 2
-./deploy-phase.sh 2 dev
+# Destroy Phase 4 (pipeline jobs)
+databricks bundle destroy -t dev --config-file databricks-phase4.yml
 
-# Roll back from Phase 2 to Phase 1
-./deploy-phase.sh 1 dev
+# Destroy Phase 3 (model serving)
+databricks bundle destroy -t dev --config-file databricks-phase3.yml
+
+# Destroy Phase 2 (training jobs)
+databricks bundle destroy -t dev --config-file databricks-phase2.yml
+
+# Destroy Phase 1 (data jobs)
+databricks bundle destroy -t dev --config-file databricks-phase1.yml
+
+# Destroy Phase 0 (catalog setup)
+databricks bundle destroy -t dev --config-file databricks-phase0.yml
 ```
 
-**Note:** This removes resources from the bundle definition but doesn't delete them. To fully clean up:
-
-```bash
-# Destroy all resources and start fresh
-databricks bundle destroy -t dev
-./deploy-phase.sh 1 dev
+**Note**: Destroying Phase 0 will NOT drop the catalog - you must manually drop it:
+```sql
+DROP CATALOG IF EXISTS `laurent_prat_entity_matching_dev` CASCADE;
 ```
+
+---
 
 ## Next Steps
 
 After successful deployment:
-- Monitor job runs in the Workflows UI
-- Check model serving endpoint metrics
-- Review Unity Catalog tables for data quality
-- Adjust schedules and parameters as needed
+
+1. Monitor job runs in Databricks UI
+2. Check model serving endpoint health
+3. Review matched entities in gold table
+4. Set up alerting on job failures
+5. Configure additional monitoring and logging

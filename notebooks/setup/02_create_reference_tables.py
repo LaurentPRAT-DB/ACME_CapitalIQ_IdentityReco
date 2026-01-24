@@ -9,7 +9,7 @@
 dbutils.widgets.text("catalog_name", "entity_matching", "Catalog Name")
 catalog_name = dbutils.widgets.get("catalog_name")
 
-spark.sql(f"USE CATALOG {catalog_name}")
+spark.sql(f"USE CATALOG `{catalog_name}`")
 
 # COMMAND ----------
 
@@ -19,7 +19,7 @@ spark.sql(f"USE CATALOG {catalog_name}")
 
 # S&P Capital IQ reference data
 spark.sql(f"""
-  CREATE TABLE IF NOT EXISTS {catalog_name}.bronze.spglobal_reference (
+  CREATE TABLE IF NOT EXISTS `{catalog_name}`.bronze.spglobal_reference (
     ciq_id STRING NOT NULL COMMENT 'S&P Capital IQ identifier',
     company_name STRING NOT NULL COMMENT 'Company legal name',
     ticker STRING COMMENT 'Stock ticker symbol',
@@ -47,7 +47,7 @@ print(f"✓ Created: {catalog_name}.bronze.spglobal_reference")
 
 # Source entities table
 spark.sql(f"""
-  CREATE TABLE IF NOT EXISTS {catalog_name}.bronze.source_entities (
+  CREATE TABLE IF NOT EXISTS `{catalog_name}`.bronze.source_entities (
     source_id STRING NOT NULL COMMENT 'Source system entity ID',
     source_system STRING NOT NULL COMMENT 'Source system name',
     company_name STRING NOT NULL COMMENT 'Company name as in source',
@@ -64,6 +64,7 @@ spark.sql(f"""
   PARTITIONED BY (source_system)
   COMMENT 'Source entities to be matched'
   TBLPROPERTIES (
+    'delta.feature.allowColumnDefaults' = 'supported',
     'delta.autoOptimize.optimizeWrite' = 'true',
     'delta.autoOptimize.autoCompact' = 'true'
   )
@@ -79,7 +80,7 @@ print(f"✓ Created: {catalog_name}.bronze.source_entities")
 
 # Matched entities with results
 spark.sql(f"""
-  CREATE TABLE IF NOT EXISTS {catalog_name}.gold.matched_entities (
+  CREATE TABLE IF NOT EXISTS `{catalog_name}`.gold.matched_entities (
     source_id STRING NOT NULL,
     source_system STRING NOT NULL,
     company_name STRING,
@@ -106,6 +107,7 @@ spark.sql(f"""
   USING DELTA
   COMMENT 'Matched entities with CIQ IDs and confidence scores'
   TBLPROPERTIES (
+    'delta.feature.allowColumnDefaults' = 'supported',
     'delta.autoOptimize.optimizeWrite' = 'true',
     'delta.enableChangeDataFeed' = 'true'
   )
@@ -121,7 +123,9 @@ print(f"✓ Created: {catalog_name}.gold.matched_entities")
 
 # Review queue view
 spark.sql(f"""
-  CREATE OR REPLACE VIEW {catalog_name}.gold.review_queue AS
+  CREATE OR REPLACE VIEW `{catalog_name}`.gold.review_queue
+  COMMENT 'Entities requiring manual review (confidence < 90%)'
+  AS
   SELECT
     source_id,
     source_system,
@@ -131,10 +135,9 @@ spark.sql(f"""
     match_method,
     reasoning,
     match_timestamp
-  FROM {catalog_name}.gold.matched_entities
+  FROM `{catalog_name}`.gold.matched_entities
   WHERE needs_review = true
   ORDER BY match_confidence ASC
-  COMMENT 'Entities requiring manual review (confidence < 90%)'
 """)
 
 print(f"✓ Created view: {catalog_name}.gold.review_queue")
@@ -143,7 +146,9 @@ print(f"✓ Created view: {catalog_name}.gold.review_queue")
 
 # Daily statistics view
 spark.sql(f"""
-  CREATE OR REPLACE VIEW {catalog_name}.gold.daily_stats AS
+  CREATE OR REPLACE VIEW `{catalog_name}`.gold.daily_stats
+  COMMENT 'Daily matching statistics'
+  AS
   SELECT
     date(match_timestamp) as match_date,
     match_method,
@@ -153,10 +158,9 @@ spark.sql(f"""
     AVG(processing_time_ms) as avg_latency_ms,
     SUM(CASE WHEN auto_matched THEN 1 ELSE 0 END) as auto_matched_count,
     SUM(CASE WHEN needs_review THEN 1 ELSE 0 END) as review_count
-  FROM {catalog_name}.gold.matched_entities
+  FROM `{catalog_name}`.gold.matched_entities
   GROUP BY match_date, match_method, match_stage
   ORDER BY match_date DESC
-  COMMENT 'Daily matching statistics'
 """)
 
 print(f"✓ Created view: {catalog_name}.gold.daily_stats")
@@ -168,7 +172,7 @@ print(f"✓ Created view: {catalog_name}.gold.daily_stats")
 # COMMAND ----------
 
 # Load sample reference data if table is empty
-count = spark.sql(f"SELECT COUNT(*) as cnt FROM {catalog_name}.bronze.spglobal_reference").collect()[0].cnt
+count = spark.sql(f"SELECT COUNT(*) as cnt FROM `{catalog_name}`.bronze.spglobal_reference").collect()[0].cnt
 
 if count == 0:
     print("Loading sample reference data...")
@@ -187,15 +191,35 @@ if count == 0:
         ["ciq_id", "company_name", "ticker", "lei", "cusip", "isin", "country", "industry", "sector"]
     )
 
-    from pyspark.sql.functions import current_timestamp
+    from pyspark.sql.functions import current_timestamp, lit
     df = df.withColumn("market_cap", lit(None).cast("double"))
     df = df.withColumn("last_updated", current_timestamp())
 
-    df.write.format("delta").mode("append").saveAsTable(f"{catalog_name}.bronze.spglobal_reference")
+    df.write.format("delta").mode("append").saveAsTable(f"`{catalog_name}`.bronze.spglobal_reference")
 
     print(f"✓ Loaded {len(sample_data)} sample reference entities")
 else:
     print(f"✓ Reference table already has {count} entities")
+
+# COMMAND ----------
+
+# MAGIC %md ## Grant Table Permissions
+
+# COMMAND ----------
+
+# Grant SELECT privileges on tables to account users
+tables_to_grant = [
+    "bronze.spglobal_reference",
+    "bronze.source_entities",
+    "gold.matched_entities"
+]
+
+for table in tables_to_grant:
+    spark.sql(f"""
+      GRANT SELECT ON TABLE `{catalog_name}`.{table} TO `account users`
+    """)
+
+print(f"✓ SELECT privileges granted on {len(tables_to_grant)} tables")
 
 # COMMAND ----------
 
@@ -210,3 +234,5 @@ print(f"  - {catalog_name}.gold.matched_entities")
 print(f"\nViews:")
 print(f"  - {catalog_name}.gold.review_queue")
 print(f"  - {catalog_name}.gold.daily_stats")
+print(f"\nPermissions:")
+print(f"  - SELECT granted to account users on all tables")

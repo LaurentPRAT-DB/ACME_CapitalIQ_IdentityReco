@@ -1,49 +1,11 @@
-# Setup and Training Jobs - Phase 1 Deployment
-# Deploy these first to create catalog and train model
+# Phase 2: Model Training
+# Generates training data and trains the Ditto model
 
 resources:
   jobs:
-    # Setup job - Create Unity Catalog tables and schemas
-    setup_unity_catalog:
-      name: "[${bundle.target}] Entity Matching - Setup Unity Catalog"
-
-      # Shared job cluster - all tasks run on this cluster
-      job_clusters:
-        - job_cluster_key: setup_cluster
-          new_cluster:
-            node_type_id: ${var.cluster_node_type}
-            spark_version: ${var.cluster_spark_version}
-            num_workers: 2
-            spark_conf:
-              spark.databricks.delta.preview.enabled: "true"
-
-      tasks:
-        - task_key: create_catalog_and_schemas
-          job_cluster_key: setup_cluster
-          notebook_task:
-            notebook_path: ../notebooks/setup/01_create_unity_catalog.py
-            base_parameters:
-              catalog_name: ${var.catalog_name}
-          timeout_seconds: 1800
-
-        - task_key: create_reference_tables
-          depends_on:
-            - task_key: create_catalog_and_schemas
-          job_cluster_key: setup_cluster
-          notebook_task:
-            notebook_path: ../notebooks/setup/02_create_reference_tables.py
-            base_parameters:
-              catalog_name: ${var.catalog_name}
-          timeout_seconds: 3600
-
-      max_concurrent_runs: 1
-      tags:
-        project: entity_matching
-        environment: ${bundle.target}
-
     # Training job - Generate training data and train Ditto model
     train_ditto_model:
-      name: "[${bundle.target}] Entity Matching - Train Ditto Model"
+      name: "[${bundle.target}] Entity Matching - Phase 2: Train Model"
 
       # Job clusters - shared across tasks
       job_clusters:
@@ -126,4 +88,5 @@ resources:
       tags:
         project: entity_matching
         environment: ${bundle.target}
-        type: training
+        phase: "2"
+        step: model_training

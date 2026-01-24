@@ -1,0 +1,34 @@
+# Phase 0: Catalog Setup
+# Creates Unity Catalog, schemas, and prepares the data infrastructure
+
+resources:
+  jobs:
+    # Setup job - Create Unity Catalog and schemas
+    setup_catalog:
+      name: "[${bundle.target}] Entity Matching - Phase 0: Setup Catalog"
+
+      # Shared job cluster
+      job_clusters:
+        - job_cluster_key: setup_cluster
+          new_cluster:
+            node_type_id: ${var.cluster_node_type}
+            spark_version: ${var.cluster_spark_version}
+            num_workers: 2
+            spark_conf:
+              spark.databricks.delta.preview.enabled: "true"
+
+      tasks:
+        - task_key: create_catalog_and_schemas
+          job_cluster_key: setup_cluster
+          notebook_task:
+            notebook_path: ../notebooks/setup/01_create_unity_catalog.py
+            base_parameters:
+              catalog_name: ${var.catalog_name}
+          timeout_seconds: 1800
+
+      max_concurrent_runs: 1
+      tags:
+        project: entity_matching
+        environment: ${bundle.target}
+        phase: "0"
+        step: catalog_setup

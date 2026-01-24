@@ -4,12 +4,14 @@
 bundle:
   name: entity_matching
 
-# Include other YAML files
-# PHASE 2: Setup, Training, and Model Serving
+# PHASE 2: Model Training
+# Generates training data and trains the Ditto model
+# Prerequisites: Phases 0 and 1 must be completed
 # Deploy with: databricks bundle deploy -t dev --config-file databricks-phase2.yml
+# Run with: databricks bundle run train_ditto_model -t dev --config-file databricks-phase2.yml
+
 include:
-  - resources/jobs_setup_training.yml  # Phase 1: Setup and training
-  - resources/model_serving.yml        # Phase 2: Model serving endpoint
+  - resources/jobs_phase2_training.yml
 
 # Variables that can be overridden
 variables:
@@ -44,14 +46,14 @@ workspace:
 
 # Targets (environments)
 targets:
-  # Development target - used for all phases
+  # Development target
   dev:
     mode: development
     default: true
     workspace:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/dev
     variables:
-      catalog_name: ${workspace.current_user.userName}_entity_matching_dev
+      catalog_name: laurent_prat_entity_matching_dev
     run_as:
       user_name: ${workspace.current_user.userName}
     permissions:
@@ -59,14 +61,6 @@ targets:
         user_name: ${workspace.current_user.userName}
       - level: CAN_VIEW
         group_name: users
-    resources:
-      model_serving_endpoints:
-        ditto_matcher:
-          permissions:
-            - level: CAN_MANAGE
-              user_name: ${workspace.current_user.userName}
-            - level: CAN_QUERY
-              user_name: ${workspace.current_user.userName}
 
   # Staging target
   staging:
@@ -82,16 +76,6 @@ targets:
         user_name: ${workspace.current_user.userName}
       - level: CAN_VIEW
         group_name: data-engineers
-    resources:
-      model_serving_endpoints:
-        ditto_matcher:
-          permissions:
-            - level: CAN_MANAGE
-              user_name: ${workspace.current_user.userName}
-            - level: CAN_QUERY
-              user_name: ${workspace.current_user.userName}
-            - level: CAN_QUERY
-              group_name: data-engineers
 
   # Production target
   prod:
@@ -108,24 +92,6 @@ targets:
         user_name: ${workspace.current_user.userName}
       - level: CAN_VIEW
         group_name: data-engineers
-    resources:
-      model_serving_endpoints:
-        ditto_matcher:
-          permissions:
-            - level: CAN_MANAGE
-              user_name: ${workspace.current_user.userName}
-            - level: CAN_QUERY
-              user_name: ${workspace.current_user.userName}
-            - level: CAN_QUERY
-              group_name: data-engineers
-
-# Artifacts (Python packages, libraries)
-# Temporarily commented out for deployment testing
-# artifacts:
-#   default:
-#     type: whl
-#     path: .
-#     build: python3 setup.py bdist_wheel
 
 # Sync configuration
 sync:

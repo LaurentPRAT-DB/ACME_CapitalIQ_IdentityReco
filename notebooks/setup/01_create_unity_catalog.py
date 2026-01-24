@@ -22,12 +22,14 @@ print(f"Catalog: {catalog_name}")
 # COMMAND ----------
 
 # Create catalog if not exists
+# Note: Catalog names must contain only alphanumeric characters and underscores
+# Using backticks for safety
 spark.sql(f"""
-  CREATE CATALOG IF NOT EXISTS {catalog_name}
+  CREATE CATALOG IF NOT EXISTS `{catalog_name}`
   COMMENT 'Entity matching to S&P Capital IQ identifiers'
 """)
 
-spark.sql(f"USE CATALOG {catalog_name}")
+spark.sql(f"USE CATALOG `{catalog_name}`")
 
 print(f"✓ Catalog '{catalog_name}' created/verified")
 
@@ -39,25 +41,25 @@ print(f"✓ Catalog '{catalog_name}' created/verified")
 
 # Bronze schema - raw data
 spark.sql(f"""
-  CREATE SCHEMA IF NOT EXISTS {catalog_name}.bronze
+  CREATE SCHEMA IF NOT EXISTS `{catalog_name}`.bronze
   COMMENT 'Raw source data and S&P reference data'
 """)
 
 # Silver schema - cleaned and normalized
 spark.sql(f"""
-  CREATE SCHEMA IF NOT EXISTS {catalog_name}.silver
+  CREATE SCHEMA IF NOT EXISTS `{catalog_name}`.silver
   COMMENT 'Cleaned and normalized entities'
 """)
 
 # Gold schema - matched entities with results
 spark.sql(f"""
-  CREATE SCHEMA IF NOT EXISTS {catalog_name}.gold
+  CREATE SCHEMA IF NOT EXISTS `{catalog_name}`.gold
   COMMENT 'Matched entities with CIQ IDs and metrics'
 """)
 
 # Models schema - ML models and embeddings
 spark.sql(f"""
-  CREATE SCHEMA IF NOT EXISTS {catalog_name}.models
+  CREATE SCHEMA IF NOT EXISTS `{catalog_name}`.models
   COMMENT 'ML models, embeddings, and model artifacts'
 """)
 
@@ -75,13 +77,14 @@ print(f"  - {catalog_name}.models")
 
 # Grant usage on catalog
 spark.sql(f"""
-  GRANT USE CATALOG ON CATALOG {catalog_name} TO `account users`
+  GRANT USE CATALOG ON CATALOG `{catalog_name}` TO `account users`
 """)
 
-# Grant usage and select on schemas
+# Grant usage on schemas
+# Note: SELECT is a table-level privilege and will be granted after tables are created
 for schema in ["bronze", "silver", "gold", "models"]:
     spark.sql(f"""
-      GRANT USE SCHEMA, SELECT ON SCHEMA {catalog_name}.{schema} TO `account users`
+      GRANT USE SCHEMA ON SCHEMA `{catalog_name}`.`{schema}` TO `account users`
     """)
 
 print("✓ Permissions granted")
@@ -93,7 +96,7 @@ print("✓ Permissions granted")
 # COMMAND ----------
 
 # List schemas
-schemas = spark.sql(f"SHOW SCHEMAS IN {catalog_name}").collect()
+schemas = spark.sql(f"SHOW SCHEMAS IN `{catalog_name}`").collect()
 print(f"\n✓ Verified {len(schemas)} schemas in catalog '{catalog_name}':")
 for schema in schemas:
     print(f"  - {schema.databaseName}")

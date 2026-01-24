@@ -1,11 +1,11 @@
-# Production Pipeline Jobs - Phase 2 Deployment
-# Deploy these after model serving endpoint is deployed
+# Phase 4: Production Pipeline
+# Deploys production matching pipeline jobs
 
 resources:
   jobs:
     # Production matching pipeline - Daily entity matching job
     entity_matching_pipeline:
-      name: "[${bundle.target}] Entity Matching - Production Pipeline"
+      name: "[${bundle.target}] Entity Matching - Phase 4: Production Pipeline"
 
       schedule:
         quartz_cron_expression: ${var.matching_job_schedule}
@@ -22,9 +22,9 @@ resources:
             autoscale:
               min_workers: 2
               max_workers: 16
-          libraries:
-            - pypi:
-                package: sentence-transformers==2.2.2
+            libraries:
+              - pypi:
+                  package: sentence-transformers==2.2.2
 
       tasks:
         - task_key: ingest_source_entities
@@ -91,7 +91,8 @@ resources:
       tags:
         project: entity_matching
         environment: ${bundle.target}
-        type: production
+        phase: "4"
+        step: production_pipeline
 
     # Ad-hoc matching job - Run matching on demand
     adhoc_entity_matching:
@@ -121,13 +122,14 @@ resources:
             autoscale:
               min_workers: 4
               max_workers: 16
-          libraries:
-            - pypi:
-                package: sentence-transformers==2.2.2
+            libraries:
+              - pypi:
+                  package: sentence-transformers==2.2.2
           timeout_seconds: 7200
 
       max_concurrent_runs: 3
       tags:
         project: entity_matching
         environment: ${bundle.target}
-        type: adhoc
+        phase: "4"
+        step: adhoc_pipeline

@@ -50,7 +50,7 @@ targets:
     workspace:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/dev
     variables:
-      catalog_name: ${workspace.current_user.userName}_entity_matching_dev
+      catalog_name: laurent_prat_entity_matching_dev
     run_as:
       user_name: ${workspace.current_user.userName}
     permissions:

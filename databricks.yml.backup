@@ -50,7 +50,6 @@ targets:
     workspace:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/dev
     variables:
-      # Sanitize username by replacing @ and . with underscores
       catalog_name: laurent_prat_entity_matching_dev
     run_as:
       user_name: ${workspace.current_user.userName}

@@ -4,14 +4,13 @@
 bundle:
   name: entity_matching
 
-# PHASE 1: Data Load
-# Creates tables and loads reference data
-# Prerequisites: Phase 0 must be completed
-# Deploy with: databricks bundle deploy -t dev --config-file databricks-phase1.yml
-# Run with: databricks bundle run load_reference_data -t dev --config-file databricks-phase1.yml
+# PHASE 0: Catalog Setup
+# Creates Unity Catalog, schemas, and prepares data infrastructure
+# Deploy with: databricks bundle deploy -t dev --config-file databricks-phase0.yml
+# Run with: databricks bundle run setup_catalog -t dev --config-file databricks-phase0.yml
 
 include:
-  - resources/jobs_phase1_data.yml
+  - resources/jobs_phase0_catalog.yml
 
 # Variables that can be overridden
 variables:

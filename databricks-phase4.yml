@@ -4,14 +4,14 @@
 bundle:
   name: entity_matching
 
-# PHASE 1: Data Load
-# Creates tables and loads reference data
-# Prerequisites: Phase 0 must be completed
-# Deploy with: databricks bundle deploy -t dev --config-file databricks-phase1.yml
-# Run with: databricks bundle run load_reference_data -t dev --config-file databricks-phase1.yml
+# PHASE 4: Production Pipeline
+# Deploys production matching pipeline jobs
+# Prerequisites: Phases 0, 1, 2, and 3 must be completed
+# Deploy with: databricks bundle deploy -t dev --config-file databricks-phase4.yml
+# Run with: databricks bundle run entity_matching_pipeline -t dev --config-file databricks-phase4.yml
 
 include:
-  - resources/jobs_phase1_data.yml
+  - resources/jobs_phase4_pipeline.yml
 
 # Variables that can be overridden
 variables:
