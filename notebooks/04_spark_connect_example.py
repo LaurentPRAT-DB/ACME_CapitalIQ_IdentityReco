@@ -31,14 +31,17 @@ from pathlib import Path
 
 # Only add workspace_path if provided (from DABs deployment)
 if workspace_path:
+    print(f"Using workspace path from DABs: {workspace_path}")
     sys.path.append(workspace_path)
-    print(f"Using workspace path: {workspace_path}")
 else:
     # For local development or interactive mode
+    print("No workspace_path provided, using interactive mode")
     # Add project root to path (adjust as needed for your setup)
     project_root = Path(__file__).parent.parent if "__file__" in globals() else Path.cwd().parent
     sys.path.insert(0, str(project_root))
     print(f"Using project root: {project_root}")
+
+print(f"sys.path: {sys.path[:3]}")
 
 from src.utils.spark_utils import get_spark_session, init_spark_connect
 from src.config import config

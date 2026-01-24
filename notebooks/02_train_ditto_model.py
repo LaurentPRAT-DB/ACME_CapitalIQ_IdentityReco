@@ -27,7 +27,7 @@ import sys
 import os
 
 # Get parameters from job (set by DABs)
-dbutils.widgets.text("workspace_path", "/Workspace/Users/${workspace.current_user.userName}/.bundle/entity_matching/dev")
+dbutils.widgets.text("workspace_path", "/Workspace/Users/${workspace.current_user.userName}/.bundle/entity_matching/dev/files")
 dbutils.widgets.text("catalog_name", "entity_matching")
 dbutils.widgets.text("num_positive_pairs", "1000")
 dbutils.widgets.text("num_negative_pairs", "1000")
@@ -39,17 +39,38 @@ num_positive_pairs = int(dbutils.widgets.get("num_positive_pairs"))
 num_negative_pairs = int(dbutils.widgets.get("num_negative_pairs"))
 output_path = dbutils.widgets.get("output_path")
 
+print(f"Using catalog: {catalog_name}")
+print(f"Workspace path: {workspace_path}")
+print(f"Output path: {output_path}")
+
+# Debug: Check if workspace_path exists
+print(f"\nChecking workspace path...")
+try:
+    files = dbutils.fs.ls(workspace_path.replace("/Workspace", ""))
+    print(f"Files in workspace_path: {[f.name for f in files[:10]]}")
+except Exception as e:
+    print(f"Error listing workspace_path: {e}")
+
+# Debug: Check sys.path
+print(f"\nCurrent sys.path: {sys.path[:5]}")
+
 # Add the workspace path to sys.path so we can import from src
 sys.path.append(workspace_path)
+print(f"Added to sys.path: {workspace_path}")
+
+# Debug: Check if src exists
+src_path = os.path.join(workspace_path, "src")
+print(f"\nChecking if src exists at: {src_path}")
+print(f"Path exists: {os.path.exists(src_path)}")
+if os.path.exists(src_path):
+    print(f"Contents: {os.listdir(src_path)[:10]}")
 
 from src.data.loader import DataLoader
 from src.data.training_generator import TrainingDataGenerator
 from src.models.ditto_matcher import DittoMatcher
 import mlflow
 
-print(f"Using catalog: {catalog_name}")
-print(f"Workspace path: {workspace_path}")
-print(f"Output path: {output_path}")
+print("\n✅ Successfully imported all modules")
 
 # COMMAND ----------
 

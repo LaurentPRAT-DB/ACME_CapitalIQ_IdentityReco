@@ -47,6 +47,7 @@ resources:
           notebook_task:
             notebook_path: ../notebooks/02_train_ditto_model.py
             base_parameters:
+              workspace_path: ${workspace.root_path}/files
               catalog_name: ${var.catalog_name}
               num_positive_pairs: "1000"
               num_negative_pairs: "1000"
@@ -237,6 +238,7 @@ resources:
           notebook_task:
             notebook_path: ../notebooks/03_full_pipeline_example.py
             base_parameters:
+              workspace_path: ${workspace.root_path}/files
               catalog_name: ${var.catalog_name}
               source_table: "{{job.parameters.source_table}}"
               output_table: "{{job.parameters.output_table}}"

@@ -31,17 +31,20 @@ workspace_path = dbutils.widgets.get("workspace_path")
 catalog_name = dbutils.widgets.get("catalog_name")
 
 import sys
+import os
 
 # Only add workspace_path if provided (from DABs deployment)
 if workspace_path:
+    print(f"Using workspace path from DABs: {workspace_path}")
     sys.path.append(workspace_path)
-    print(f"Using workspace path: {workspace_path}")
 else:
     # For interactive development, try to find the src module
-    import os
+    print("No workspace_path provided, using interactive mode")
     project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
     sys.path.append(project_root)
     print(f"Using project root: {project_root}")
+
+print(f"sys.path: {sys.path[:3]}")
 
 from src.data.loader import DataLoader
 from src.pipeline.hybrid_pipeline import HybridMatchingPipeline
