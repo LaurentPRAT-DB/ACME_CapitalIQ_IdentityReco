@@ -15,17 +15,41 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install transformers torch scikit-learn mlflow
+# MAGIC %pip install transformers==4.36.0 torch==2.1.0 sentence-transformers==2.2.2 scikit-learn mlflow
+
+# COMMAND ----------
+
+dbutils.library.restartPython()
 
 # COMMAND ----------
 
 import sys
-sys.path.append("/Workspace/entity-matching")
+import os
+
+# Get parameters from job (set by DABs)
+dbutils.widgets.text("workspace_path", "/Workspace/Users/${workspace.current_user.userName}/.bundle/entity_matching/dev")
+dbutils.widgets.text("catalog_name", "entity_matching")
+dbutils.widgets.text("num_positive_pairs", "1000")
+dbutils.widgets.text("num_negative_pairs", "1000")
+dbutils.widgets.text("output_path", "/dbfs/entity_matching/training_data")
+
+workspace_path = dbutils.widgets.get("workspace_path")
+catalog_name = dbutils.widgets.get("catalog_name")
+num_positive_pairs = int(dbutils.widgets.get("num_positive_pairs"))
+num_negative_pairs = int(dbutils.widgets.get("num_negative_pairs"))
+output_path = dbutils.widgets.get("output_path")
+
+# Add the workspace path to sys.path so we can import from src
+sys.path.append(workspace_path)
 
 from src.data.loader import DataLoader
 from src.data.training_generator import TrainingDataGenerator
 from src.models.ditto_matcher import DittoMatcher
 import mlflow
+
+print(f"Using catalog: {catalog_name}")
+print(f"Workspace path: {workspace_path}")
+print(f"Output path: {output_path}")
 
 # COMMAND ----------
 
@@ -34,12 +58,11 @@ import mlflow
 
 # COMMAND ----------
 
-# Load S&P Capital IQ reference data
-loader = DataLoader()
-reference_df = loader.load_reference_data()
+# Load S&P Capital IQ reference data from Unity Catalog
+reference_df = spark.table(f"{catalog_name}.bronze.spglobal_reference")
 
-print(f"Loaded {len(reference_df)} reference entities")
-display(reference_df.head())
+print(f"Loaded {reference_df.count()} reference entities from {catalog_name}.bronze.spglobal_reference")
+display(reference_df.limit(5))
 
 # COMMAND ----------
 
@@ -52,10 +75,13 @@ display(reference_df.head())
 generator = TrainingDataGenerator(seed=42)
 
 # Generate training pairs from S&P 500
+# Convert Spark DataFrame to pandas for the generator
+reference_pdf = reference_df.toPandas()
+
 training_df = generator.generate_from_sp500(
-    reference_df=reference_df,
-    num_positive_pairs=500,
-    num_negative_pairs=500
+    reference_df=reference_pdf,
+    num_positive_pairs=num_positive_pairs,
+    num_negative_pairs=num_negative_pairs
 )
 
 print(f"\nTraining data shape: {training_df.shape}")

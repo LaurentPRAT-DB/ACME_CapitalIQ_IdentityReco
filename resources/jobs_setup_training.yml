@@ -54,11 +54,6 @@ resources:
             num_workers: 4
             spark_conf:
               spark.databricks.delta.preview.enabled: "true"
-            libraries:
-              - pypi:
-                  package: sentence-transformers==2.2.2
-              - pypi:
-                  package: torch==2.1.0
 
         - job_cluster_key: training_cluster
           new_cluster:
@@ -70,13 +65,6 @@ resources:
               spark.master: local[*]
             custom_tags:
               ResourceClass: SingleNode
-            libraries:
-              - pypi:
-                  package: torch==2.1.0
-              - pypi:
-                  package: transformers==4.36.0
-              - pypi:
-                  package: sentence-transformers==2.2.2
 
       tasks:
         - task_key: generate_training_data

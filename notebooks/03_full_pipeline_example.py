@@ -15,18 +15,41 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install transformers sentence-transformers faiss-cpu torch scikit-learn databricks-sdk mlflow
+# MAGIC %pip install transformers==4.36.0 sentence-transformers==2.2.2 torch==2.1.0 faiss-cpu scikit-learn databricks-sdk mlflow
 
 # COMMAND ----------
 
+dbutils.library.restartPython()
+
+# COMMAND ----------
+
+# Get parameters from job (set by DABs) or use defaults for interactive mode
+dbutils.widgets.text("workspace_path", "")
+dbutils.widgets.text("catalog_name", "entity_matching")
+
+workspace_path = dbutils.widgets.get("workspace_path")
+catalog_name = dbutils.widgets.get("catalog_name")
+
 import sys
-sys.path.append("/Workspace/entity-matching")
+
+# Only add workspace_path if provided (from DABs deployment)
+if workspace_path:
+    sys.path.append(workspace_path)
+    print(f"Using workspace path: {workspace_path}")
+else:
+    # For interactive development, try to find the src module
+    import os
+    project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
+    sys.path.append(project_root)
+    print(f"Using project root: {project_root}")
 
 from src.data.loader import DataLoader
 from src.pipeline.hybrid_pipeline import HybridMatchingPipeline
 from src.evaluation.validator import GoldStandardValidator
 from databricks.sdk import WorkspaceClient
 import pandas as pd
+
+print(f"Using catalog: {catalog_name}")
 
 # COMMAND ----------
 
@@ -36,12 +59,12 @@ import pandas as pd
 # COMMAND ----------
 
 # Load S&P Capital IQ reference data from Delta table
-reference_df = spark.table("reference.spglobal_entities").toPandas()
-print(f"Loaded {len(reference_df)} reference entities")
+reference_df = spark.table(f"{catalog_name}.bronze.spglobal_reference").toPandas()
+print(f"Loaded {len(reference_df)} reference entities from {catalog_name}.bronze.spglobal_reference")
 
 # Load source entities to match
-source_df = spark.table("silver.entities_normalized").toPandas()
-print(f"Loaded {len(source_df)} source entities to match")
+source_df = spark.table(f"{catalog_name}.bronze.source_entities").toPandas()
+print(f"Loaded {len(source_df)} source entities to match from {catalog_name}.bronze.source_entities")
 
 display(source_df.head())
 
@@ -56,9 +79,12 @@ display(source_df.head())
 w = WorkspaceClient()
 
 # Initialize hybrid pipeline with all stages
+# Use model from Unity Catalog if available
+ditto_model_path = f"models:/{catalog_name}.models.entity_matching_ditto/1"
+
 pipeline = HybridMatchingPipeline(
     reference_df=reference_df,
-    ditto_model_path="/dbfs/entity_matching/models/ditto_matcher",  # Trained model
+    ditto_model_path=ditto_model_path,  # Trained model from UC
     embeddings_model_name="BAAI/bge-large-en-v1.5",
     foundation_model_name="databricks-dbrx-instruct",
     ditto_high_confidence=0.90,  # Auto-accept threshold
@@ -211,9 +237,9 @@ results_spark_df.write \
     .format("delta") \
     .mode("append") \
     .option("mergeSchema", "true") \
-    .saveAsTable("gold.matched_entities")
+    .saveAsTable(f"{catalog_name}.gold.matched_entities")
 
-print(f"Saved {len(results_df)} matched entities to gold.matched_entities")
+print(f"Saved {len(results_df)} matched entities to {catalog_name}.gold.matched_entities")
 
 # COMMAND ----------
 
@@ -233,7 +259,7 @@ if len(review_df) > 0:
     review_spark_df.write \
         .format("delta") \
         .mode("overwrite") \
-        .saveAsTable("gold.review_queue")
+        .saveAsTable(f"{catalog_name}.gold.review_queue")
 
     display(review_df)
 

@@ -17,17 +17,41 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install transformers sentence-transformers faiss-cpu torch scikit-learn tqdm
+# MAGIC %pip install transformers==4.36.0 sentence-transformers==2.2.2 torch==2.1.0 faiss-cpu scikit-learn tqdm
 
 # COMMAND ----------
 
+dbutils.library.restartPython()
+
+# COMMAND ----------
+
+# Get parameters from job (set by DABs) or use defaults for interactive mode
+dbutils.widgets.text("workspace_path", "")
+dbutils.widgets.text("catalog_name", "entity_matching")
+
+workspace_path = dbutils.widgets.get("workspace_path")
+catalog_name = dbutils.widgets.get("catalog_name")
+
 # Import required modules
 import sys
-sys.path.append("/Workspace/entity-matching")  # Adjust to your workspace path
+
+# Only add workspace_path if provided (from DABs deployment)
+if workspace_path:
+    sys.path.append(workspace_path)
+    print(f"Using workspace path: {workspace_path}")
+else:
+    # For interactive development, try to find the src module
+    import os
+    # Assuming notebook is in notebooks/ and src is at project root
+    project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
+    sys.path.append(project_root)
+    print(f"Using project root: {project_root}")
 
 from src.data.loader import DataLoader
 from src.pipeline.hybrid_pipeline import HybridMatchingPipeline
 from src.evaluation.metrics import print_metrics, calculate_pipeline_metrics
+
+print(f"Using catalog: {catalog_name}")
 
 # COMMAND ----------
 
@@ -36,19 +60,17 @@ from src.evaluation.metrics import print_metrics, calculate_pipeline_metrics
 
 # COMMAND ----------
 
-# Initialize data loader
-loader = DataLoader()
-
-# Load sample reference data (S&P Capital IQ)
-reference_df = loader.load_reference_data()
-print(f"Loaded {len(reference_df)} reference entities")
+# Load sample reference data (S&P Capital IQ) from Unity Catalog
+reference_df = spark.table(f"{catalog_name}.bronze.spglobal_reference").toPandas()
+print(f"Loaded {len(reference_df)} reference entities from {catalog_name}.bronze.spglobal_reference")
 display(reference_df.head())
 
 # COMMAND ----------
 
-# Load sample source entities
-source_entities = loader.load_sample_entities()
-print(f"Loaded {len(source_entities)} source entities to match")
+# Load sample source entities from Unity Catalog
+source_entities_df = spark.table(f"{catalog_name}.bronze.source_entities").toPandas()
+source_entities = source_entities_df.to_dict('records')
+print(f"Loaded {len(source_entities)} source entities to match from {catalog_name}.bronze.source_entities")
 
 for entity in source_entities[:3]:
     print(f"\n{entity}")
@@ -153,9 +175,11 @@ print_metrics(metrics, title="Pipeline Evaluation")
 # COMMAND ----------
 
 # Save results to Delta table
-results_df.write.format("delta").mode("overwrite").saveAsTable("gold.entity_matches")
+from pyspark.sql import SparkSession
+spark_df = spark.createDataFrame(results_df)
+spark_df.write.format("delta").mode("overwrite").saveAsTable(f"{catalog_name}.gold.matched_entities")
 
-print("Results saved to gold.entity_matches")
+print(f"Results saved to {catalog_name}.gold.matched_entities")
 
 # COMMAND ----------
 

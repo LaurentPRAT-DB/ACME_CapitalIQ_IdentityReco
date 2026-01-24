@@ -22,9 +22,6 @@ resources:
             autoscale:
               min_workers: 2
               max_workers: 16
-            libraries:
-              - pypi:
-                  package: sentence-transformers==2.2.2
 
       tasks:
         - task_key: ingest_source_entities
@@ -122,9 +119,9 @@ resources:
             autoscale:
               min_workers: 4
               max_workers: 16
-            libraries:
-              - pypi:
-                  package: sentence-transformers==2.2.2
+          libraries:
+            - pypi:
+                package: sentence-transformers==2.2.2
           timeout_seconds: 7200
 
       max_concurrent_runs: 3

@@ -18,17 +18,33 @@
 
 # COMMAND ----------
 
+# Get parameters from job (set by DABs) or use defaults for interactive mode
+dbutils.widgets.text("workspace_path", "")
+dbutils.widgets.text("catalog_name", "entity_matching")
+
+workspace_path = dbutils.widgets.get("workspace_path")
+catalog_name = dbutils.widgets.get("catalog_name")
+
 import sys
 import os
 from pathlib import Path
 
-# Add project root to path (adjust as needed for your setup)
-project_root = Path(__file__).parent.parent if "__file__" in globals() else Path.cwd().parent
-sys.path.insert(0, str(project_root))
+# Only add workspace_path if provided (from DABs deployment)
+if workspace_path:
+    sys.path.append(workspace_path)
+    print(f"Using workspace path: {workspace_path}")
+else:
+    # For local development or interactive mode
+    # Add project root to path (adjust as needed for your setup)
+    project_root = Path(__file__).parent.parent if "__file__" in globals() else Path.cwd().parent
+    sys.path.insert(0, str(project_root))
+    print(f"Using project root: {project_root}")
 
 from src.utils.spark_utils import get_spark_session, init_spark_connect
 from src.config import config
 from pyspark.sql import functions as F
+
+print(f"Using catalog: {catalog_name}")
 
 # COMMAND ----------
 
@@ -88,7 +104,7 @@ test_df.show()
 # Example: Read from Unity Catalog table
 # Uncomment if you have Unity Catalog tables set up
 """
-reference_df = spark.table("main.entity_matching.spglobal_reference")
+reference_df = spark.table(f"{catalog_name}.bronze.spglobal_reference")
 print(f"Reference entities: {reference_df.count()}")
 reference_df.show(5)
 """
@@ -217,9 +233,9 @@ matched_expanded.write \
     .format("delta") \
     .mode("overwrite") \
     .option("overwriteSchema", "true") \
-    .saveAsTable("main.entity_matching.matched_entities")
+    .saveAsTable(f"{catalog_name}.gold.matched_entities")
 
-print("Results saved to main.entity_matching.matched_entities")
+print(f"Results saved to {catalog_name}.gold.matched_entities")
 """
 
 # Or write to DBFS path

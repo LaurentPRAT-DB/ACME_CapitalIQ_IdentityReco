@@ -4,14 +4,14 @@
 bundle:
   name: entity_matching
 
-# PHASE 1: Data Load
-# Creates tables and loads reference data
-# Prerequisites: Phase 0 must be completed
-# Deploy with: databricks bundle deploy -t dev --config-file databricks-phase1.yml
-# Run with: databricks bundle run load_reference_data -t dev --config-file databricks-phase1.yml
+# PHASE 2: Model Training
+# Generates training data and trains the Ditto model
+# Prerequisites: Phases 0 and 1 must be completed
+# Deploy with: databricks bundle deploy -t dev --config-file databricks-phase2.yml
+# Run with: databricks bundle run train_ditto_model -t dev --config-file databricks-phase2.yml
 
 include:
-  - resources/jobs_phase1_data.yml
+  - resources/jobs_phase2_training.yml
 
 # Variables that can be overridden
 variables:
@@ -60,7 +60,7 @@ targets:
       - level: CAN_MANAGE
         user_name: ${workspace.current_user.userName}
       - level: CAN_VIEW
-        group_name: account users
+        group_name: "account users"
 
   # Staging target
   staging:

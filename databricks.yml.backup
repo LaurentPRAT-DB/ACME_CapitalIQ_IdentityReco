@@ -4,13 +4,14 @@
 bundle:
   name: entity_matching
 
-# PHASE 0: Catalog Setup
-# Creates Unity Catalog, schemas, and prepares data infrastructure
-# Deploy with: databricks bundle deploy -t dev --config-file databricks-phase0.yml
-# Run with: databricks bundle run setup_catalog -t dev --config-file databricks-phase0.yml
+# PHASE 2: Model Training
+# Generates training data and trains the Ditto model
+# Prerequisites: Phases 0 and 1 must be completed
+# Deploy with: databricks bundle deploy -t dev --config-file databricks-phase2.yml
+# Run with: databricks bundle run train_ditto_model -t dev --config-file databricks-phase2.yml
 
 include:
-  - resources/jobs_phase0_catalog.yml
+  - resources/jobs_phase2_training.yml
 
 # Variables that can be overridden
 variables:
@@ -59,7 +60,7 @@ targets:
       - level: CAN_MANAGE
         user_name: ${workspace.current_user.userName}
       - level: CAN_VIEW
-        group_name: account users
+        group_name: "account users"
 
   # Staging target
   staging:
