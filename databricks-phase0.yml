@@ -101,7 +101,7 @@ sync:
     - "*.pyc"
     - .env
     - .env.*
-    - data/
-    - models/
+    - /data/
+    - /models/
     - "*.log"
     - .DS_Store
