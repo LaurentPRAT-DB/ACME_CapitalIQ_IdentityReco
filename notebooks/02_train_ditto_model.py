@@ -159,9 +159,20 @@ username = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tag
 experiment_name = f"{catalog_name}-ditto-model-training"
 experiment_path = f"/Users/{username}/{experiment_name}"
 
+# Set registry URI to Unity Catalog
+mlflow.set_registry_uri("databricks-uc")
+
+# Ensure the 'models' schema exists in Unity Catalog
+try:
+    spark.sql(f"CREATE SCHEMA IF NOT EXISTS {catalog_name}.models")
+    print(f"✅ Schema {catalog_name}.models is ready")
+except Exception as e:
+    print(f"Warning: Could not create schema {catalog_name}.models: {e}")
+
 # Set or create the experiment
 mlflow.set_experiment(experiment_path)
 print(f"Using MLflow experiment: {experiment_path}")
+print(f"Using Unity Catalog for model registry")
 
 # COMMAND ----------
 
@@ -205,11 +216,14 @@ with mlflow.start_run(run_name="ditto-entity-matcher"):
         "right_entity": ["COL name VAL Apple Computer COL ticker VAL AAPL"]
     })
 
-    # Log using transformers flavor
-    mlflow.transformers.log_model(
+    # Log using transformers flavor with Unity Catalog three-level namespace
+    # Format: catalog.schema.model_name
+    registered_model_name = f"{catalog_name}.models.entity_matching_ditto"
+
+    model_info = mlflow.transformers.log_model(
         transformers_model=components,
         artifact_path="ditto-model",
-        registered_model_name="entity_matching_ditto",
+        registered_model_name=registered_model_name,
         task="text-classification",  # Specify the task type
         pip_requirements=[
             "transformers>=4.40.0",
@@ -217,6 +231,28 @@ with mlflow.start_run(run_name="ditto-entity-matcher"):
             "sentencepiece",  # Required for some tokenizers
         ]
     )
+
+    print(f"✅ Model registered in Unity Catalog as: {registered_model_name}")
+    print(f"   Model URI: {model_info.model_uri}")
+    print(f"   Run ID: {mlflow.active_run().info.run_id}")
+
+    # Get the registered model version
+    from mlflow.tracking import MlflowClient
+    client = MlflowClient()
+
+    # Get the latest version of the registered model
+    model_versions = client.search_model_versions(f"name='{registered_model_name}'")
+    if model_versions:
+        latest_version = max([int(mv.version) for mv in model_versions])
+        print(f"   Model Version: {latest_version}")
+
+        # Set alias for the model version (best practice for Unity Catalog)
+        client.set_registered_model_alias(
+            name=registered_model_name,
+            alias="Champion",
+            version=str(latest_version)
+        )
+        print(f"   ✅ Alias 'Champion' set to version {latest_version}")
 
     print(f"Model saved to {model_output_path}")
 
@@ -301,29 +337,71 @@ for i, (left, right) in enumerate(test_pairs, 1):
 
 # COMMAND ----------
 
+# MAGIC %pip install --upgrade databricks-sdk
+
+# COMMAND ----------
+
+dbutils.library.restartPython()
+
+# COMMAND ----------
+
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedModelInput
+from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput
+import databricks.sdk
+
+print(f"Databricks SDK version: {databricks.sdk.__version__}")
+
+# Re-get parameters after Python restart
+catalog_name = dbutils.widgets.get("catalog_name")
 
 w = WorkspaceClient()
 
 # Create serving endpoint
 endpoint_name = "ditto-entity-matcher"
 
-w.serving_endpoints.create(
-    name=endpoint_name,
-    config=EndpointCoreConfigInput(
-        served_models=[
-            ServedModelInput(
-                model_name="entity_matching_ditto",
-                model_version="1",
-                scale_to_zero_enabled=True,
-                workload_size="Small"
+# Unity Catalog model name (three-level namespace)
+uc_model_name = f"{catalog_name}.models.entity_matching_ditto"
+print(f"Unity Catalog model: {uc_model_name}")
+
+# Check if endpoint already exists
+existing_endpoints = w.serving_endpoints.list()
+endpoint_exists = any(ep.name == endpoint_name for ep in existing_endpoints)
+
+if endpoint_exists:
+    print(f"⚠️  Endpoint '{endpoint_name}' already exists. Updating configuration...")
+    w.serving_endpoints.update_config(
+        name=endpoint_name,
+        served_entities=[
+            ServedEntityInput(
+                name="ditto-entity",
+                entity_name=uc_model_name,
+                entity_version="Champion",  # Use alias instead of version number
+                workload_size="Small",
+                scale_to_zero_enabled=True
             )
         ]
     )
-)
+    print(f"✅ Endpoint '{endpoint_name}' updated successfully!")
+else:
+    print(f"Creating new serving endpoint '{endpoint_name}'...")
+    w.serving_endpoints.create(
+        name=endpoint_name,
+        config=EndpointCoreConfigInput(
+            name=endpoint_name,  # Required by the SDK dataclass
+            served_entities=[
+                ServedEntityInput(
+                    name="ditto-entity",
+                    entity_name=uc_model_name,
+                    entity_version="Champion",  # Use alias instead of version number
+                    workload_size="Small",
+                    scale_to_zero_enabled=True
+                )
+            ]
+        )
+    )
+    print(f"✅ Endpoint '{endpoint_name}' created successfully!")
 
-print(f"Serving endpoint '{endpoint_name}' created successfully!")
+print(f"Serving Unity Catalog model: {uc_model_name} (version: Champion alias)")
 
 # COMMAND ----------
 
