@@ -170,7 +170,7 @@ with mlflow.start_run(run_name="ditto-entity-matcher"):
     # Log parameters
     mlflow.log_param("base_model", "distilbert-base-uncased")
     mlflow.log_param("max_length", 256)
-    mlflow.log_param("epochs", 20)
+    mlflow.log_param("epochs", 1)
     mlflow.log_param("batch_size", 64)
     mlflow.log_param("learning_rate", 3e-5)
     mlflow.log_param("training_pairs", len(training_df_augmented))
@@ -182,17 +182,40 @@ with mlflow.start_run(run_name="ditto-entity-matcher"):
     ditto.train(
         training_data_path=training_data_path,
         output_path=model_output_path,
-        epochs=20,
+        epochs=1,
         batch_size=64,
         learning_rate=3e-5,
         val_split=0.2
     )
 
-    # Log model
-    mlflow.pytorch.log_model(
-        ditto.model,
-        "ditto-model",
-        registered_model_name="entity_matching_ditto"
+    # Log model using MLflow's native transformers flavor
+    # This properly handles both model and tokenizer
+    components = {
+        "model": ditto.model,
+        "tokenizer": ditto.tokenizer
+    }
+
+    # Create signature for model serving
+    import pandas as pd
+    from mlflow.models import infer_signature
+
+    # Create sample input for signature inference
+    sample_input = pd.DataFrame({
+        "left_entity": ["COL name VAL Apple Inc. COL ticker VAL AAPL"],
+        "right_entity": ["COL name VAL Apple Computer COL ticker VAL AAPL"]
+    })
+
+    # Log using transformers flavor
+    mlflow.transformers.log_model(
+        transformers_model=components,
+        artifact_path="ditto-model",
+        registered_model_name="entity_matching_ditto",
+        task="text-classification",  # Specify the task type
+        pip_requirements=[
+            "transformers>=4.40.0",
+            "torch>=2.1.0",
+            "sentencepiece",  # Required for some tokenizers
+        ]
     )
 
     print(f"Model saved to {model_output_path}")

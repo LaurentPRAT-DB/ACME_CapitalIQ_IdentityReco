@@ -307,3 +307,96 @@ class DittoMatcher:
         }
 
         return metrics
+
+
+def train_cli():
+    """
+    CLI entry point for training Ditto model
+    Used by Databricks Asset Bundle python_wheel_task
+    """
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(
+        description="Train Ditto entity matching model"
+    )
+    parser.add_argument(
+        "--training-data",
+        required=True,
+        help="Path to training data CSV file"
+    )
+    parser.add_argument(
+        "--output-path",
+        required=True,
+        help="Path to save trained model"
+    )
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=20,
+        help="Number of training epochs (default: 20)"
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=64,
+        help="Training batch size (default: 64)"
+    )
+    parser.add_argument(
+        "--learning-rate",
+        type=float,
+        default=3e-5,
+        help="Learning rate (default: 3e-5)"
+    )
+    parser.add_argument(
+        "--base-model",
+        default="distilbert-base-uncased",
+        help="Base transformer model (default: distilbert-base-uncased)"
+    )
+
+    args = parser.parse_args()
+
+    print("="*80)
+    print("Ditto Model Training")
+    print("="*80)
+    print(f"Training data: {args.training_data}")
+    print(f"Output path: {args.output_path}")
+    print(f"Epochs: {args.epochs}")
+    print(f"Batch size: {args.batch_size}")
+    print(f"Learning rate: {args.learning_rate}")
+    print(f"Base model: {args.base_model}")
+    print("="*80)
+
+    try:
+        # Initialize matcher
+        matcher = DittoMatcher(base_model=args.base_model)
+
+        # Train model
+        matcher.train(
+            training_data_path=args.training_data,
+            output_path=args.output_path,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            learning_rate=args.learning_rate
+        )
+
+        print("="*80)
+        print("✓ Training completed successfully!")
+        print(f"Model saved to: {args.output_path}")
+        print("="*80)
+
+        return 0
+
+    except Exception as e:
+        print("="*80)
+        print(f"✗ Training failed: {str(e)}")
+        print("="*80)
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    """Allow running as: python -m src.models.ditto_matcher"""
+    import sys
+    sys.exit(train_cli())

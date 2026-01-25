@@ -32,7 +32,14 @@ setup(
     author_email="laurent.prat@databricks.com",
     url="https://github.com/LaurentPRAT-DB/MET_CapitalIQ_identityReco",
     license="Apache License 2.0",
-    packages=find_packages(),
+    packages=[
+        "src",
+        "src.data",
+        "src.models",
+        "src.pipeline",
+        "src.utils",
+        "src.evaluation",
+    ],
     python_requires=">=3.9",
     install_requires=[
         "pandas>=2.0.0",
@@ -78,4 +85,9 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Office/Business :: Financial",
     ],
+    entry_points={
+        "console_scripts": [
+            "train_ditto=src.models.ditto_matcher:train_cli",
+        ],
+    },
 )
