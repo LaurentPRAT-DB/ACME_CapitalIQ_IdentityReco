@@ -26,9 +26,17 @@ dbutils.library.restartPython()
 # Get parameters from job (set by DABs) or use defaults for interactive mode
 dbutils.widgets.text("workspace_path", "")
 dbutils.widgets.text("catalog_name", "entity_matching")
+dbutils.widgets.text("gold_standard_path", "")
+dbutils.widgets.text("source_table", "")
+dbutils.widgets.text("output_table", "")
+dbutils.widgets.text("date_filter", "")
 
 workspace_path = dbutils.widgets.get("workspace_path")
 catalog_name = dbutils.widgets.get("catalog_name")
+gold_standard_path = dbutils.widgets.get("gold_standard_path")
+source_table = dbutils.widgets.get("source_table")
+output_table = dbutils.widgets.get("output_table")
+date_filter = dbutils.widgets.get("date_filter")
 
 import sys
 import os
@@ -66,8 +74,18 @@ reference_df = spark.table(f"{catalog_name}.bronze.spglobal_reference").toPandas
 print(f"Loaded {len(reference_df)} reference entities from {catalog_name}.bronze.spglobal_reference")
 
 # Load source entities to match
-source_df = spark.table(f"{catalog_name}.bronze.source_entities").toPandas()
-print(f"Loaded {len(source_df)} source entities to match from {catalog_name}.bronze.source_entities")
+# Use source_table parameter if provided, otherwise use default
+source_table_name = source_table if source_table else f"{catalog_name}.bronze.source_entities"
+
+# Apply date filter if provided
+if date_filter:
+    print(f"Applying date filter: {date_filter}")
+    source_df_spark = spark.table(source_table_name).filter(date_filter)
+else:
+    source_df_spark = spark.table(source_table_name)
+
+source_df = source_df_spark.toPandas()
+print(f"Loaded {len(source_df)} source entities to match from {source_table_name}")
 
 display(source_df.head())
 
@@ -154,7 +172,16 @@ plt.show()
 
 # Load gold standard test set
 validator = GoldStandardValidator()
-ground_truth = validator.load_gold_standard("/dbfs/entity_matching/gold_standard.csv")
+
+# Use parameter if provided, otherwise load from catalog table
+if gold_standard_path:
+    print(f"Loading gold standard from: {gold_standard_path}")
+    ground_truth = validator.load_gold_standard(gold_standard_path)
+else:
+    # Load from Unity Catalog table (preferred for DABs)
+    print(f"Loading gold standard from catalog table: {catalog_name}.bronze.gold_standard")
+    ground_truth_df = spark.table(f"{catalog_name}.bronze.gold_standard").toPandas()
+    ground_truth = ground_truth_df
 
 # Evaluate
 metrics = validator.evaluate(pipeline, source_entities[:100], ground_truth)
@@ -236,13 +263,16 @@ results_df['matched_timestamp'] = datetime.now()
 results_spark_df = spark.createDataFrame(results_df)
 
 # Write to Delta table
+# Use output_table parameter if provided, otherwise use default
+output_table_name = output_table if output_table else f"{catalog_name}.gold.matched_entities"
+
 results_spark_df.write \
     .format("delta") \
     .mode("append") \
     .option("mergeSchema", "true") \
-    .saveAsTable(f"{catalog_name}.gold.matched_entities")
+    .saveAsTable(output_table_name)
 
-print(f"Saved {len(results_df)} matched entities to {catalog_name}.gold.matched_entities")
+print(f"Saved {len(results_df)} matched entities to {output_table_name}")
 
 # COMMAND ----------
 

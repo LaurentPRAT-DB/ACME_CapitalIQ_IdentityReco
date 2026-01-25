@@ -6,6 +6,10 @@
 
 # COMMAND ----------
 
+from __future__ import annotations
+
+# COMMAND ----------
+
 dbutils.widgets.text("catalog_name", "entity_matching", "Catalog Name")
 dbutils.widgets.text("output_table", "", "Output Table (optional)")
 
@@ -28,6 +32,17 @@ vector_ditto_matches = spark.table(f"{catalog_name}.silver.vector_ditto_matches_
 
 # Combine all matches
 all_matches = exact_matches.union(vector_ditto_matches)
+
+# Add auto_matched and needs_review flags based on confidence thresholds
+from pyspark.sql.functions import when, col
+
+all_matches = all_matches.withColumn(
+    "auto_matched",
+    when(col("match_confidence") >= 0.90, True).otherwise(False)
+).withColumn(
+    "needs_review",
+    when(col("match_confidence") < 0.70, True).otherwise(False)
+)
 
 total_matches = all_matches.count()
 print(f"Total matches to write: {total_matches}")

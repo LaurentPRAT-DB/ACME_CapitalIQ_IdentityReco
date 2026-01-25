@@ -51,6 +51,7 @@ resources:
             notebook_path: ../notebooks/pipeline/03_vector_search_ditto.py
             base_parameters:
               catalog_name: ${var.catalog_name}
+              workspace_path: ${workspace.root_path}/files
               ditto_endpoint: ditto-em-${bundle.target}
               vector_search_endpoint: entity-matching-vs-${bundle.target}
           timeout_seconds: 7200
@@ -122,7 +123,11 @@ resources:
               max_workers: 16
           libraries:
             - pypi:
-                package: sentence-transformers==2.2.2
+                package: sentence-transformers>=2.3.0
+            - pypi:
+                package: transformers>=4.40.0
+            - pypi:
+                package: torch>=2.1.0
           timeout_seconds: 7200
 
       max_concurrent_runs: 3

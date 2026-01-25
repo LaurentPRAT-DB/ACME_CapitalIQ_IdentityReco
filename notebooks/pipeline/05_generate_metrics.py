@@ -6,6 +6,10 @@
 
 # COMMAND ----------
 
+from __future__ import annotations
+
+# COMMAND ----------
+
 dbutils.widgets.text("catalog_name", "entity_matching", "Catalog Name")
 catalog_name = dbutils.widgets.get("catalog_name")
 
@@ -39,13 +43,30 @@ if total_count == 0:
 # COMMAND ----------
 
 # Calculate statistics
-stats = today_matches.agg(
+# Check if auto_matched and needs_review columns exist (they should from write_results step)
+has_auto_matched = "auto_matched" in today_matches.columns
+has_needs_review = "needs_review" in today_matches.columns
+
+# Build aggregation dynamically based on available columns
+agg_exprs = [
     count("*").alias("total_entities"),
     avg("match_confidence").alias("avg_confidence"),
-    sum(when(col("auto_matched"), 1).otherwise(0)).alias("auto_matched_count"),
-    sum(when(col("needs_review"), 1).otherwise(0)).alias("review_count"),
     avg("processing_time_ms").alias("avg_latency_ms")
-).collect()[0]
+]
+
+if has_auto_matched:
+    agg_exprs.append(sum(when(col("auto_matched"), 1).otherwise(0)).alias("auto_matched_count"))
+else:
+    # Fall back to confidence-based calculation
+    agg_exprs.append(sum(when(col("match_confidence") >= 0.90, 1).otherwise(0)).alias("auto_matched_count"))
+
+if has_needs_review:
+    agg_exprs.append(sum(when(col("needs_review"), 1).otherwise(0)).alias("review_count"))
+else:
+    # Fall back to confidence-based calculation
+    agg_exprs.append(sum(when(col("match_confidence") < 0.70, 1).otherwise(0)).alias("review_count"))
+
+stats = today_matches.agg(*agg_exprs).collect()[0]
 
 print("\n" + "="*80)
 print("PIPELINE METRICS - Today")

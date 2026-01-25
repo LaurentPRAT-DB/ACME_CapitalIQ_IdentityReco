@@ -1,0 +1,521 @@
+# Databricks Asset Bundles Migration Skill Package
+
+## 📦 What's Included
+
+I've created a comprehensive Claude Code skill package to help port local code to Databricks Asset Bundles (DABs). This package includes:
+
+### 1. **Core Skill Definition**
+📄 `.claude/skills/databricks-dabs-migration.md`
+
+The main skill that analyzes your codebase and guides you through migration.
+
+**What it does:**
+- ✅ Scans codebase structure
+- ✅ Identifies hardcoded paths
+- ✅ Checks library compatibility
+- ✅ Validates DABs configuration
+- ✅ Detects code quality issues
+- ✅ Generates migration plan
+- ✅ Creates comprehensive documentation
+
+### 2. **User Guide & Examples**
+📄 `.claude/skills/README.md`
+
+Complete guide with:
+- How to use the skill
+- Common issues and fixes
+- Best practices
+- Quick reference
+- Troubleshooting tips
+
+### 3. **Quick Reference Cheat Sheet**
+📄 `.claude/skills/DABS_MIGRATION_CHEATSHEET.md`
+
+One-page reference for:
+- Common errors and solutions
+- Code patterns
+- Essential commands
+- 5-minute quick check
+- Success indicators
+
+### 4. **Migration Tracker Template**
+📄 `.claude/skills/MIGRATION_TEMPLATE.md`
+
+Structured template for tracking:
+- Phase-by-phase progress
+- Issues and resolutions
+- Testing results
+- Timeline and team
+- Success metrics
+
+### 5. **Current Project Documentation**
+📄 `DATABRICKS_PATH_ALIGNMENT.md`
+
+Real-world example from your entity matching project showing:
+- Actual path mappings
+- DABs configuration details
+- Directory structure
+- Verification checklist
+
+---
+
+## 🚀 How to Use This Skill
+
+### Quick Start
+
+1. **Invoke the skill**
+   ```bash
+   /databricks-dabs-migration
+   ```
+
+2. **Review generated documentation**
+   The skill creates 7 markdown files analyzing your project:
+   - `MIGRATION_DISCOVERY.md` - Codebase overview
+   - `PATH_MIGRATION_PLAN.md` - Path fixes
+   - `DEPENDENCY_MIGRATION_PLAN.md` - Library updates
+   - `CONFIG_REVIEW.md` - DABs validation
+   - `CODE_QUALITY_FIXES.md` - Code improvements
+   - `MIGRATION_GUIDE.md` - Step-by-step plan
+   - `DATABRICKS_MIGRATION_COMPLETE.md` - Final reference
+
+3. **Follow the migration guide**
+   Apply fixes in order:
+   - Dependencies first
+   - Paths second
+   - Configuration third
+   - Code quality fourth
+   - Testing last
+
+4. **Validate and deploy**
+   ```bash
+   databricks bundle validate -t dev
+   databricks bundle deploy -t dev
+   ```
+
+### Focused Usage
+
+For specific issues:
+
+```bash
+# Only check paths
+/databricks-dabs-migration --focus paths
+
+# Only verify dependencies
+/databricks-dabs-migration --focus dependencies
+
+# Only validate MLflow setup
+/databricks-dabs-migration --focus mlflow
+
+# Only review DABs YAML
+/databricks-dabs-migration --focus config
+```
+
+### Different Modes
+
+```bash
+# Analysis only (no fixes)
+/databricks-dabs-migration --mode analysis
+
+# Generate plan without applying changes
+/databricks-dabs-migration --mode plan
+
+# Validate existing migration
+/databricks-dabs-migration --mode validate
+```
+
+---
+
+## 🎯 Key Issues Detected & Fixed
+
+Based on real issues from your entity matching project:
+
+### 1. Type Annotation Compatibility ✅ FIXED
+**Problem:**
+```python
+def process(items: list[str]) -> dict[str, int]:  # Breaks in Python <3.9
+    ...
+```
+
+**Detection:** Skill scans for lowercase type hints without future import
+
+**Fix:**
+```python
+from __future__ import annotations
+
+def process(items: list[str]) -> dict[str, int]:  # Works everywhere
+    ...
+```
+
+### 2. Hardcoded Paths ✅ FIXED
+**Problem:**
+```python
+output_path = "/dbfs/entity_matching/models/ditto_matcher"  # Overwrites parameter!
+```
+
+**Detection:** Skill finds all hardcoded paths in code
+
+**Fix:**
+```python
+model_output_path = f"{output_path}/models/ditto_matcher"  # Uses parameter
+```
+
+### 3. Library Version Issues ✅ FIXED
+**Problem:**
+```
+transformers>=4.36.0  # Too old, breaks with Python 3.10 type hints
+```
+
+**Detection:** Skill checks known version compatibility issues
+
+**Fix:**
+```
+transformers>=4.40.0  # Compatible with Python 3.10
+%pip install --upgrade transformers>=4.40.0  # Force upgrade in notebooks
+```
+
+### 4. Directory Creation ✅ FIXED
+**Problem:**
+```python
+df.to_csv(filepath, index=False)  # OSError if directory doesn't exist
+```
+
+**Detection:** Skill finds file writes without directory creation
+
+**Fix:**
+```python
+Path(filepath).parent.mkdir(parents=True, exist_ok=True)
+df.to_csv(filepath, index=False)
+```
+
+### 5. MLflow Experiment Setup ✅ FIXED
+**Problem:**
+```python
+with mlflow.start_run():  # RestException: experiment ID None
+    mlflow.log_param("param", value)
+```
+
+**Detection:** Skill checks for experiment setup before runs
+
+**Fix:**
+```python
+experiment_path = f"/Users/{username}/{catalog_name}-experiment"
+mlflow.set_experiment(experiment_path)
+with mlflow.start_run(run_name="my-run"):
+    mlflow.log_param("param", value)
+```
+
+---
+
+## 📚 Documentation Structure
+
+### Generated by Skill
+```
+project/
+├── MIGRATION_DISCOVERY.md          # Codebase structure analysis
+├── PATH_MIGRATION_PLAN.md          # Hardcoded path inventory
+├── DEPENDENCY_MIGRATION_PLAN.md    # Library compatibility report
+├── CONFIG_REVIEW.md                # DABs YAML validation
+├── CODE_QUALITY_FIXES.md           # Code improvement list
+├── MIGRATION_GUIDE.md              # Step-by-step instructions
+└── DATABRICKS_MIGRATION_COMPLETE.md # Final reference
+```
+
+### Skill Package
+```
+.claude/skills/
+├── databricks-dabs-migration.md    # Main skill definition
+├── README.md                       # User guide
+├── DABS_MIGRATION_CHEATSHEET.md    # Quick reference
+└── MIGRATION_TEMPLATE.md           # Progress tracker
+```
+
+---
+
+## 🔍 What the Skill Analyzes
+
+### 1. Repository Structure
+- Python modules and packages
+- Notebooks (.py, .ipynb)
+- Configuration files (YAML, TOML, requirements.txt)
+- Test files
+- Documentation
+
+### 2. Path Usage
+- Hardcoded absolute paths
+- File I/O operations (read, write, save)
+- MLflow artifact/experiment paths
+- Unity Catalog references
+- Temporary file locations
+
+### 3. Dependencies
+- Library versions in requirements.txt/setup.py
+- Known compatibility issues
+- Python version requirements
+- Type annotation usage
+- Import statements
+
+### 4. DABs Configuration
+- databricks.yml structure
+- Job/pipeline configurations
+- Parameter definitions
+- Variable substitution
+- Workspace paths
+
+### 5. Code Quality
+- Directory creation patterns
+- MLflow experiment setup
+- Import path configuration
+- Widget parameter usage
+- Error handling
+
+---
+
+## 🎓 Learning from Real Issues
+
+This skill was built from actual migration challenges:
+
+### Issue 1: Type Annotations
+**What happened:** `TypeError: 'type' object is not subscriptable`
+
+**Root cause:** Old transformers library (4.36.0) used type hints without `from __future__ import annotations`
+
+**Lesson learned:**
+- Always add future annotations to all Python files
+- Check library versions for compatibility
+- Use `--upgrade` flag in Databricks notebooks
+
+### Issue 2: Path Overwriting
+**What happened:** Notebook hardcoded path, overwrote DABs parameter
+
+**Root cause:** Line like `output_path = "/dbfs/..."` shadowed widget parameter
+
+**Lesson learned:**
+- Never reuse DABs parameter names for local variables
+- Use descriptive names: `final_output_path`, `model_output_path`
+- Always use parameters: `f"{output_path}/subdir"`
+
+### Issue 3: MLflow Experiments
+**What happened:** `RestException: Could not find experiment with ID None`
+
+**Root cause:** No experiment setup before `mlflow.start_run()`
+
+**Lesson learned:**
+- Always call `mlflow.set_experiment()` first
+- Use flat workspace paths: `/Users/user/catalog-name-experiment`
+- Avoid nested directories that don't exist
+
+### Issue 4: Directory Missing
+**What happened:** `OSError: Cannot save file into a non-existent directory`
+
+**Root cause:** Code tried to save file without creating parent directory
+
+**Lesson learned:**
+- Always create directories before file operations
+- Use `Path(...).parent.mkdir(parents=True, exist_ok=True)`
+- Make it part of save methods
+
+---
+
+## ✅ Success Criteria
+
+Your migration is successful when:
+
+### Technical
+- ✅ `databricks bundle validate` passes
+- ✅ `databricks bundle deploy -t dev` completes
+- ✅ Jobs run without path errors
+- ✅ Files created in correct locations
+- ✅ MLflow experiments visible in workspace
+- ✅ Imports work without sys.path hacks
+- ✅ No hardcoded paths in code
+- ✅ All dependencies compatible
+
+### Operational
+- ✅ Team can deploy independently
+- ✅ Parameters configurable per environment
+- ✅ Rollback process documented
+- ✅ Troubleshooting guide available
+- ✅ Testing procedures established
+
+---
+
+## 🛠️ Customization
+
+### Extending the Skill
+
+To add new detection patterns:
+
+1. Edit `.claude/skills/databricks-dabs-migration.md`
+2. Add new pattern to appropriate phase
+3. Update examples in README
+4. Add to cheat sheet
+5. Test on your project
+
+### Adding Custom Checks
+
+Example: Detect specific anti-patterns
+```markdown
+## Phase X: Custom Checks
+
+**Objective:** Detect project-specific issues
+
+**Tasks:**
+1. Check for deprecated API usage
+2. Validate data schema compliance
+3. Verify security best practices
+```
+
+---
+
+## 📊 Metrics & Tracking
+
+Use `MIGRATION_TEMPLATE.md` to track:
+
+### Progress Metrics
+- Files analyzed
+- Issues found
+- Fixes applied
+- Tests passed
+- Phases completed
+
+### Quality Metrics
+- Validation success rate
+- Deployment success rate
+- Job failure rate
+- Path errors count
+- Import errors count
+
+### Timeline Metrics
+- Phase durations
+- Total migration time
+- Testing time
+- Documentation time
+
+---
+
+## 🤝 Team Collaboration
+
+### For Developers
+- Use the skill to analyze your code
+- Follow generated migration guide
+- Apply fixes incrementally
+- Test at each step
+
+### For DevOps
+- Review DABs configuration
+- Validate parameter flow
+- Set up environments
+- Configure CI/CD
+
+### For Data Engineers
+- Verify Unity Catalog integration
+- Test data pipelines
+- Validate outputs
+- Review performance
+
+---
+
+## 📖 References
+
+### Documentation
+- [Databricks Asset Bundles](https://docs.databricks.com/dev-tools/bundles/index.html)
+- [Unity Catalog](https://docs.databricks.com/data-governance/unity-catalog/index.html)
+- [MLflow on Databricks](https://docs.databricks.com/mlflow/index.html)
+
+### Your Project Examples
+- `DATABRICKS_PATH_ALIGNMENT.md` - Complete path mappings
+- `databricks.yml` - Bundle configuration
+- `resources/jobs_phase2_training.yml` - Job configuration
+- `notebooks/02_train_ditto_model.py` - Fixed notebook example
+
+---
+
+## 🎯 Next Steps
+
+1. **Try the skill on your project:**
+   ```bash
+   /databricks-dabs-migration
+   ```
+
+2. **Review generated documentation**
+
+3. **Start with high-priority fixes:**
+   - Dependencies (breaks builds)
+   - Paths (breaks execution)
+   - MLflow (breaks tracking)
+
+4. **Test incrementally:**
+   - Fix one category at a time
+   - Test after each change
+   - Commit working state
+
+5. **Share learnings:**
+   - Update skill with new patterns
+   - Add examples to README
+   - Help team members
+
+---
+
+## 💡 Pro Tips
+
+1. **Start Small:** Migrate one notebook/module first
+2. **Test Early:** Validate after each fix category
+3. **Document:** Use MIGRATION_TEMPLATE.md to track progress
+4. **Automate:** Create scripts for common fixes
+5. **Share:** Update skill with project-specific patterns
+
+---
+
+## 🆘 Getting Help
+
+1. **Check the cheat sheet:** Quick solutions for common issues
+2. **Review examples:** Your project has working examples
+3. **Run skill analysis:** Get specific recommendations
+4. **Read error messages:** They often point to the issue
+5. **Ask Claude:** "How do I fix [specific error]?"
+
+---
+
+## 🎉 What Makes This Skill Special
+
+### Comprehensive
+- 7 analysis phases
+- Complete documentation
+- Real-world examples
+- Step-by-step guidance
+
+### Practical
+- Built from actual migration issues
+- Proven solutions
+- Working code examples
+- Tested patterns
+
+### Flexible
+- Focused analysis options
+- Multiple modes
+- Customizable checks
+- Extensible framework
+
+### Educational
+- Explains why, not just what
+- Anti-pattern examples
+- Best practice patterns
+- Learning from mistakes
+
+---
+
+**Created:** 2026-01-25
+**Version:** 1.0.0
+**Based On:** Entity Matching Project Migration Experience
+**Status:** ✅ Ready to Use
+
+---
+
+## Quick Start Command
+
+```bash
+# Just run this!
+/databricks-dabs-migration
+```
+
+Then follow the generated `MIGRATION_GUIDE.md` 🚀

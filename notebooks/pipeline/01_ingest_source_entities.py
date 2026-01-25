@@ -6,6 +6,10 @@
 
 # COMMAND ----------
 
+from __future__ import annotations
+
+# COMMAND ----------
+
 dbutils.widgets.text("catalog_name", "entity_matching", "Catalog Name")
 dbutils.widgets.text("source_table", "", "Source Table (optional)")
 
