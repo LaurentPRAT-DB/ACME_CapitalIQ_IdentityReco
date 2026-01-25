@@ -302,6 +302,7 @@ for i, (left, right) in enumerate(test_pairs, 1):
 # COMMAND ----------
 
 from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedModelInput
 
 w = WorkspaceClient()
 
@@ -310,14 +311,16 @@ endpoint_name = "ditto-entity-matcher"
 
 w.serving_endpoints.create(
     name=endpoint_name,
-    config={
-        "served_models": [{
-            "model_name": "entity_matching_ditto",
-            "model_version": "1",
-            "scale_to_zero_enabled": True,
-            "workload_size": "Small"
-        }]
-    }
+    config=EndpointCoreConfigInput(
+        served_models=[
+            ServedModelInput(
+                model_name="entity_matching_ditto",
+                model_version="1",
+                scale_to_zero_enabled=True,
+                workload_size="Small"
+            )
+        ]
+    )
 )
 
 print(f"Serving endpoint '{endpoint_name}' created successfully!")
