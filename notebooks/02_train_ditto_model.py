@@ -31,7 +31,7 @@ dbutils.widgets.text("workspace_path", "/Workspace/Users/${workspace.current_use
 dbutils.widgets.text("catalog_name", "entity_matching")
 dbutils.widgets.text("num_positive_pairs", "1000")
 dbutils.widgets.text("num_negative_pairs", "1000")
-dbutils.widgets.text("output_path", "/dbfs/entity_matching/training_data")
+dbutils.widgets.text("output_path", "/Workspace/Users/${workspace.current_user.userName}/.bundle/entity_matching/dev/training_data")
 
 workspace_path = dbutils.widgets.get("workspace_path")
 catalog_name = dbutils.widgets.get("catalog_name")
@@ -133,8 +133,9 @@ print(f"Augmented training data: {len(training_df)} -> {len(training_df_augmente
 
 # COMMAND ----------
 
-# Save training data
-training_data_path = "/dbfs/entity_matching/ditto_training_data.csv"
+# Save training data using the output_path from DABs
+training_data_path = f"{output_path}/ditto_training_data.csv"
+print(f"Saving training data to: {training_data_path}")
 loader.save_training_data(training_df_augmented, training_data_path)
 
 # COMMAND ----------
@@ -152,6 +153,18 @@ ditto = DittoMatcher(
 
 # COMMAND ----------
 
+# Setup MLflow experiment
+# Use a simple experiment path under the user's workspace
+username = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
+experiment_name = f"{catalog_name}-ditto-model-training"
+experiment_path = f"/Users/{username}/{experiment_name}"
+
+# Set or create the experiment
+mlflow.set_experiment(experiment_path)
+print(f"Using MLflow experiment: {experiment_path}")
+
+# COMMAND ----------
+
 # Start MLflow run
 with mlflow.start_run(run_name="ditto-entity-matcher"):
     # Log parameters
@@ -162,12 +175,13 @@ with mlflow.start_run(run_name="ditto-entity-matcher"):
     mlflow.log_param("learning_rate", 3e-5)
     mlflow.log_param("training_pairs", len(training_df_augmented))
 
-    # Train model
-    output_path = "/dbfs/entity_matching/models/ditto_matcher"
+    # Train model - use a subfolder under output_path for the model
+    model_output_path = f"{output_path}/models/ditto_matcher"
+    print(f"Training model, will save to: {model_output_path}")
 
     ditto.train(
         training_data_path=training_data_path,
-        output_path=output_path,
+        output_path=model_output_path,
         epochs=20,
         batch_size=64,
         learning_rate=3e-5,
@@ -181,7 +195,7 @@ with mlflow.start_run(run_name="ditto-entity-matcher"):
         registered_model_name="entity_matching_ditto"
     )
 
-    print(f"Model saved to {output_path}")
+    print(f"Model saved to {model_output_path}")
 
 # COMMAND ----------
 
@@ -197,7 +211,11 @@ test_df = generator.generate_from_sp500(
     num_negative_pairs=100
 )
 
-test_data_path = "/dbfs/entity_matching/ditto_test_data.csv"
+test_data_path = f"{output_path}/ditto_test_data.csv"
+print(f"Saving test data to: {test_data_path}")
+# Ensure parent directory exists
+from pathlib import Path
+Path(test_data_path).parent.mkdir(parents=True, exist_ok=True)
 test_df.to_csv(test_data_path, index=False)
 
 # COMMAND ----------
@@ -212,8 +230,8 @@ for metric, value in metrics.items():
     print(f"{metric}: {value:.4f}")
 print("=" * 60)
 
-# Log metrics to MLflow
-with mlflow.start_run(nested=True):
+# Log metrics to MLflow (create new run for evaluation)
+with mlflow.start_run(run_name="ditto-entity-matcher-evaluation"):
     for metric, value in metrics.items():
         mlflow.log_metric(metric, value)
 

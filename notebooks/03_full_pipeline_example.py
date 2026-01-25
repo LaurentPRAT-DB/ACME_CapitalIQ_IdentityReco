@@ -275,6 +275,13 @@ if len(review_df) > 0:
 
 import mlflow
 
+# Setup MLflow experiment
+username = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
+experiment_name = f"{catalog_name}-pipeline-execution"
+experiment_path = f"/Users/{username}/{experiment_name}"
+mlflow.set_experiment(experiment_path)
+print(f"Using MLflow experiment: {experiment_path}")
+
 # Log pipeline run to MLflow
 with mlflow.start_run(run_name="entity-matching-pipeline-run"):
     # Log parameters
