@@ -1,9 +1,7 @@
 """Model implementations"""
 
-from .embeddings import BGEEmbeddings
-from .ditto_matcher import DittoMatcher
-from .foundation_model import FoundationModelMatcher
-from .vector_search import VectorSearchIndex
+# Note: Import specific classes directly from submodules to avoid circular imports
+# Example: from src.models.ditto_matcher import DittoMatcher
 
 __all__ = [
     "BGEEmbeddings",

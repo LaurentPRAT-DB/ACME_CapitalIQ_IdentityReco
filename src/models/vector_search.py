@@ -145,6 +145,11 @@ class VectorSearchIndex:
         if self.index is None:
             raise ValueError("No index to save")
 
+        # Create parent directory if it doesn't exist
+        from pathlib import Path
+        filepath_obj = Path(filepath)
+        filepath_obj.parent.mkdir(parents=True, exist_ok=True)
+
         faiss.write_index(self.index, filepath)
         print(f"Index saved to {filepath}")
 

@@ -15,7 +15,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install transformers>=4.40.0 torch>=2.1.0 sentence-transformers>=2.3.0 scikit-learn mlflow
+# MAGIC %pip install --upgrade transformers>=4.40.0 torch>=2.1.0 sentence-transformers>=2.3.0 scikit-learn mlflow
 
 # COMMAND ----------
 
@@ -68,6 +68,12 @@ print(f"\nChecking if src exists at: {src_path}")
 print(f"Path exists: {os.path.exists(src_path)}")
 if os.path.exists(src_path):
     print(f"Contents: {os.listdir(src_path)[:10]}")
+
+# Verify transformers version
+import transformers
+print(f"Transformers version: {transformers.__version__}")
+if tuple(map(int, transformers.__version__.split('.')[:2])) < (4, 40):
+    raise RuntimeError(f"transformers version {transformers.__version__} is too old. Need >= 4.40.0")
 
 from src.data.loader import DataLoader
 from src.data.training_generator import TrainingDataGenerator

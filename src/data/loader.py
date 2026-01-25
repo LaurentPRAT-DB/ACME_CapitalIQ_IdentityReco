@@ -139,11 +139,19 @@ class DataLoader:
 
     def save_training_data(self, df: pd.DataFrame, filepath: str):
         """Save training data to CSV"""
+        # Create parent directory if it doesn't exist
+        filepath_obj = Path(filepath)
+        filepath_obj.parent.mkdir(parents=True, exist_ok=True)
+
         df.to_csv(filepath, index=False)
         print(f"Saved {len(df)} training pairs to {filepath}")
 
     def save_results(self, df: pd.DataFrame, filepath: str, format: str = "csv"):
         """Save matching results"""
+        # Create parent directory if it doesn't exist
+        filepath_obj = Path(filepath)
+        filepath_obj.parent.mkdir(parents=True, exist_ok=True)
+
         if format == "csv":
             df.to_csv(filepath, index=False)
         elif format == "parquet":
