@@ -34,6 +34,10 @@ class TrainingDataGenerator:
         Returns:
             DataFrame with training pairs (left_entity, right_entity, label)
         """
+        # Convert PySpark DataFrame to pandas if needed
+        if hasattr(reference_df, 'toPandas'):
+            reference_df = reference_df.toPandas()
+
         training_pairs = []
 
         # Generate positive pairs
