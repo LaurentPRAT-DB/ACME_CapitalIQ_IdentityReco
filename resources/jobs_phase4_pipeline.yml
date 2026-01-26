@@ -12,20 +12,8 @@ resources:
         timezone_id: "America/Los_Angeles"
         pause_status: UNPAUSED
 
-      # Shared job cluster - all tasks run on this cluster
-      job_clusters:
-        - job_cluster_key: pipeline_cluster
-          new_cluster:
-            node_type_id: ${var.cluster_node_type}
-            spark_version: ${var.cluster_spark_version}
-            num_workers: 4
-            autoscale:
-              min_workers: 2
-              max_workers: 16
-
       tasks:
         - task_key: ingest_source_entities
-          job_cluster_key: pipeline_cluster
           notebook_task:
             notebook_path: ../notebooks/pipeline/01_ingest_source_entities.py
             base_parameters:
@@ -36,7 +24,6 @@ resources:
         - task_key: exact_match
           depends_on:
             - task_key: ingest_source_entities
-          job_cluster_key: pipeline_cluster
           notebook_task:
             notebook_path: ../notebooks/pipeline/02_exact_match.py
             base_parameters:
@@ -46,7 +33,6 @@ resources:
         - task_key: vector_search_and_ditto
           depends_on:
             - task_key: exact_match
-          job_cluster_key: pipeline_cluster
           notebook_task:
             notebook_path: ../notebooks/pipeline/03_vector_search_ditto.py
             base_parameters:
@@ -59,7 +45,6 @@ resources:
         - task_key: write_results
           depends_on:
             - task_key: vector_search_and_ditto
-          job_cluster_key: pipeline_cluster
           notebook_task:
             notebook_path: ../notebooks/pipeline/04_write_results.py
             base_parameters:
@@ -70,7 +55,6 @@ resources:
         - task_key: generate_metrics
           depends_on:
             - task_key: write_results
-          job_cluster_key: pipeline_cluster
           notebook_task:
             notebook_path: ../notebooks/pipeline/05_generate_metrics.py
             base_parameters:
@@ -114,13 +98,6 @@ resources:
               source_table: "{{job.parameters.source_table}}"
               output_table: "{{job.parameters.output_table}}"
               date_filter: "{{job.parameters.date_filter}}"
-          new_cluster:
-            node_type_id: ${var.cluster_node_type}
-            spark_version: ${var.cluster_spark_version}
-            num_workers: 8
-            autoscale:
-              min_workers: 4
-              max_workers: 16
           libraries:
             - pypi:
                 package: sentence-transformers>=2.3.0

@@ -7,19 +7,8 @@ resources:
     setup_catalog:
       name: "[${bundle.target}] Entity Matching - Phase 0: Setup Catalog"
 
-      # Shared job cluster
-      job_clusters:
-        - job_cluster_key: setup_cluster
-          new_cluster:
-            node_type_id: ${var.cluster_node_type}
-            spark_version: ${var.cluster_spark_version}
-            num_workers: 2
-            spark_conf:
-              spark.databricks.delta.preview.enabled: "true"
-
       tasks:
         - task_key: create_catalog_and_schemas
-          job_cluster_key: setup_cluster
           notebook_task:
             notebook_path: ../notebooks/setup/01_create_unity_catalog.py
             base_parameters:

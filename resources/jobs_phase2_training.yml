@@ -7,30 +7,8 @@ resources:
     train_ditto_model:
       name: "[${bundle.target}] Entity Matching - Phase 2: Train Model"
 
-      # Job clusters - shared across tasks
-      job_clusters:
-        - job_cluster_key: data_cluster
-          new_cluster:
-            node_type_id: ${var.cluster_node_type}
-            spark_version: ${var.cluster_spark_version}
-            num_workers: 4
-            spark_conf:
-              spark.databricks.delta.preview.enabled: "true"
-
-        - job_cluster_key: training_cluster
-          new_cluster:
-            node_type_id: i3.xlarge
-            spark_version: ${var.cluster_spark_version}
-            num_workers: 0  # Single node for GPU training
-            spark_conf:
-              spark.databricks.cluster.profile: singleNode
-              spark.master: local[*]
-            custom_tags:
-              ResourceClass: SingleNode
-
       tasks:
         - task_key: generate_training_data
-          job_cluster_key: data_cluster
           notebook_task:
             notebook_path: ../notebooks/02_train_ditto_model.py
             base_parameters:
@@ -44,7 +22,6 @@ resources:
         - task_key: train_model
           depends_on:
             - task_key: generate_training_data
-          job_cluster_key: training_cluster
           python_wheel_task:
             package_name: entity_matching
             entry_point: train_ditto
@@ -60,7 +37,6 @@ resources:
         - task_key: register_model
           depends_on:
             - task_key: train_model
-          job_cluster_key: data_cluster
           notebook_task:
             notebook_path: ../notebooks/setup/03_register_model.py
             base_parameters:

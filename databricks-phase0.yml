@@ -40,7 +40,7 @@ variables:
 
 # Workspace configuration
 workspace:
-  profile: DEFAULT
+  profile: LPT_FREE_EDITION
   root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
 
 # Targets (environments)
@@ -59,7 +59,7 @@ targets:
       - level: CAN_MANAGE
         user_name: ${workspace.current_user.userName}
       - level: CAN_VIEW
-        group_name: "account users"
+        group_name: "users"
 
   # Staging target
   staging:
@@ -74,7 +74,7 @@ targets:
       - level: CAN_MANAGE
         user_name: ${workspace.current_user.userName}
       - level: CAN_VIEW
-        group_name: account users
+        group_name: users
 
   # Production target
   prod:
@@ -90,7 +90,7 @@ targets:
       - level: CAN_MANAGE
         user_name: ${workspace.current_user.userName}
       - level: CAN_VIEW
-        group_name: account users
+        group_name: users
 
 # Sync configuration
 sync:

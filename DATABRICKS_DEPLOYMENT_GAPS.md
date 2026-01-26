@@ -415,7 +415,7 @@ job_clusters:
 # scripts/init-databricks.sh
 #!/bin/bash
 echo "Setting up Databricks CLI..."
-databricks configure --profile DEFAULT
+databricks configure --profile LPT_FREE_EDITION
 
 echo "Testing connection..."
 databricks workspace ls /

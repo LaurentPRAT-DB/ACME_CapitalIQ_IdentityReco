@@ -7,19 +7,8 @@ resources:
     load_reference_data:
       name: "[${bundle.target}] Entity Matching - Phase 1: Load Reference Data"
 
-      # Shared job cluster
-      job_clusters:
-        - job_cluster_key: data_cluster
-          new_cluster:
-            node_type_id: ${var.cluster_node_type}
-            spark_version: ${var.cluster_spark_version}
-            num_workers: 2
-            spark_conf:
-              spark.databricks.delta.preview.enabled: "true"
-
       tasks:
         - task_key: create_reference_tables
-          job_cluster_key: data_cluster
           notebook_task:
             notebook_path: ../notebooks/setup/02_create_reference_tables.py
             base_parameters:

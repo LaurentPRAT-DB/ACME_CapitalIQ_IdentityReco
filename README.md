@@ -193,7 +193,7 @@ Test with real Databricks cluster using **Spark Connect** (code runs locally, ex
 
 ```bash
 # 1. Configure Databricks CLI
-databricks configure --profile DEFAULT
+databricks configure --profile LPT_FREE_EDITION
 # Enter your workspace URL and personal access token
 
 # 2. Set cluster ID in .env
@@ -426,7 +426,7 @@ pip install -r requirements.txt
 pip install databricks-cli
 
 # Configure
-databricks configure --profile DEFAULT
+databricks configure --profile LPT_FREE_EDITION
 ```
 
 For more troubleshooting, see [TESTING_GUIDE.md#troubleshooting](documentation/TESTING_GUIDE.md#troubleshooting).
@@ -561,7 +561,7 @@ pip install -r requirements.txt
 python3 example.py
 
 # Test Spark Connect (requires Databricks)
-databricks configure --profile DEFAULT
+databricks configure --profile LPT_FREE_EDITION
 cp .env.example .env  # Edit with your cluster ID
 python3 test_spark_connect.py
 python3 example_spark_connect.py

@@ -266,7 +266,7 @@ print('Generated 2000 training pairs')
 
 ```bash
 # Configure Databricks
-databricks configure --profile DEFAULT
+databricks configure --profile LPT_FREE_EDITION
 
 # Copy environment template
 cp .env.example .env
