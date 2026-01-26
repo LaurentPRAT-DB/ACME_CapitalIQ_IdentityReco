@@ -345,7 +345,7 @@ dbutils.library.restartPython()
 
 # COMMAND ----------
 
-iimport mlflow
+import mlflow
 from mlflow.tracking import MlflowClient
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput
@@ -369,6 +369,7 @@ champion_info = client.get_model_version_by_alias(
     "Champion"
 )
 champion_version = str(champion_info.version)
+print(f" champion version: {champion_version}")
 
 if endpoint_exists:
     print(f"⚠️  Endpoint '{endpoint_name}' already exists. Updating configuration...")
