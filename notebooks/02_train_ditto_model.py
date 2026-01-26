@@ -345,27 +345,30 @@ dbutils.library.restartPython()
 
 # COMMAND ----------
 
+iimport mlflow
+from mlflow.tracking import MlflowClient
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput
-import databricks.sdk
-
-print(f"Databricks SDK version: {databricks.sdk.__version__}")
-
-# Re-get parameters after Python restart
-catalog_name = dbutils.widgets.get("catalog_name")
 
 w = WorkspaceClient()
+client = MlflowClient()
 
-# Create serving endpoint
-endpoint_name = "ditto-entity-matcher"
+# Define endpoint name
+endpoint_name = "ditto-entity"
 
-# Unity Catalog model name (three-level namespace)
-uc_model_name = f"{catalog_name}.models.entity_matching_ditto"
-print(f"Unity Catalog model: {uc_model_name}")
+# Check if endpoint exists
+try:
+    w.serving_endpoints.get(endpoint_name)
+    endpoint_exists = True
+except Exception:
+    endpoint_exists = False
 
-# Check if endpoint already exists
-existing_endpoints = w.serving_endpoints.list()
-endpoint_exists = any(ep.name == endpoint_name for ep in existing_endpoints)
+# Resolve Champion alias to a numeric version
+champion_info = client.get_model_version_by_alias(
+    uc_model_name,
+    "Champion"
+)
+champion_version = str(champion_info.version)
 
 if endpoint_exists:
     print(f"⚠️  Endpoint '{endpoint_name}' already exists. Updating configuration...")
@@ -373,13 +376,13 @@ if endpoint_exists:
         name=endpoint_name,
         served_entities=[
             ServedEntityInput(
-                name="ditto-entity",
+                name=endpoint_name,
                 entity_name=uc_model_name,
-                entity_version="Champion",  # Use alias instead of version number
+                entity_version=champion_version,
                 workload_size="Small",
-                scale_to_zero_enabled=True
+                scale_to_zero_enabled=True,
             )
-        ]
+        ],
     )
     print(f"✅ Endpoint '{endpoint_name}' updated successfully!")
 else:
@@ -387,21 +390,20 @@ else:
     w.serving_endpoints.create(
         name=endpoint_name,
         config=EndpointCoreConfigInput(
-            name=endpoint_name,  # Required by the SDK dataclass
             served_entities=[
                 ServedEntityInput(
                     name="ditto-entity",
                     entity_name=uc_model_name,
-                    entity_version="Champion",  # Use alias instead of version number
+                    entity_version=champion_version,
                     workload_size="Small",
-                    scale_to_zero_enabled=True
+                    scale_to_zero_enabled=True,
                 )
             ]
-        )
+        ),
     )
     print(f"✅ Endpoint '{endpoint_name}' created successfully!")
 
-print(f"Serving Unity Catalog model: {uc_model_name} (version: Champion alias)")
+print(f"Serving Unity Catalog model: {uc_model_name} (version resolved from Champion alias -> {champion_version})")
 
 # COMMAND ----------
 
