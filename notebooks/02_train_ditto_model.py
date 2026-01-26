@@ -215,33 +215,26 @@ with mlflow.start_run(run_name="ditto-entity-matcher"):
     # Create custom wrapper that patches sys.stdout during model loading
     class DittoModelWrapper(mlflow.pyfunc.PythonModel):
         def load_context(self, context):
-            """Load model with patched sys.stdout to handle isatty() issue"""
+            """Load model directly using transformers (avoids MLflow auto-detection issues)"""
             import sys
             import os
-
-            # Monkey patch StreamToLogger to add isatty() method
-            original_stdout = sys.stdout
-            if hasattr(sys.stdout, '__class__') and sys.stdout.__class__.__name__ == 'StreamToLogger':
-                # Add isatty method if missing
-                if not hasattr(sys.stdout, 'isatty'):
-                    sys.stdout.isatty = lambda: False
+            from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
             # Set environment variable to disable color output
             os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
 
-            # Now load the model
-            import mlflow.transformers
+            # Load model and tokenizer directly from saved path
             model_path = context.artifacts["model"]
+            self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
+            self.tokenizer = AutoTokenizer.from_pretrained(model_path)
 
-            # Load using transformers flavor
-            self.pipeline = mlflow.transformers.load_model(model_path)
-
-            # Restore original stdout
-            sys.stdout = original_stdout
+            # Set model to eval mode
+            self.model.eval()
 
         def predict(self, context, model_input):
             """Make predictions using the loaded model"""
             import torch
+            import torch.nn.functional as F
 
             # Handle both DataFrame and dict inputs
             if isinstance(model_input, pd.DataFrame):
@@ -258,12 +251,21 @@ with mlflow.start_run(run_name="ditto-entity-matcher"):
             results = []
             with torch.no_grad():
                 for text in texts:
-                    outputs = self.pipeline(text)
-                    pred = outputs[0]['label']
-                    score = outputs[0]['score']
+                    # Tokenize input
+                    inputs = self.tokenizer(text, return_tensors="pt", truncation=True, max_length=256)
+
+                    # Get model output
+                    outputs = self.model(**inputs)
+                    logits = outputs.logits
+
+                    # Get prediction and confidence
+                    probs = F.softmax(logits, dim=-1)
+                    pred_class = torch.argmax(probs, dim=-1).item()
+                    confidence = probs[0][pred_class].item()
+
                     results.append({
-                        'prediction': 1 if pred == 'LABEL_1' else 0,
-                        'confidence': score
+                        'prediction': pred_class,
+                        'confidence': confidence
                     })
 
             return pd.DataFrame(results)
@@ -273,21 +275,14 @@ with mlflow.start_run(run_name="ditto-entity-matcher"):
     import shutil
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        # Save transformers model to temporary directory
+        # Save transformers model to temporary directory using native save methods
+        # This avoids MLflow's auto-detection that tries to add tensorflow
         model_tmpdir = os.path.join(tmpdir, "transformers_model")
         os.makedirs(model_tmpdir, exist_ok=True)
 
-        # Log transformers model to temp location
-        components = {
-            "model": ditto.model,
-            "tokenizer": ditto.tokenizer
-        }
-
-        mlflow.transformers.save_model(
-            transformers_model=components,
-            path=model_tmpdir,
-            task="text-classification"
-        )
+        # Save model and tokenizer using transformers native methods
+        ditto.model.save_pretrained(model_tmpdir)
+        ditto.tokenizer.save_pretrained(model_tmpdir)
 
         # Create sample input for signature inference
         sample_input = pd.DataFrame({
@@ -321,8 +316,7 @@ with mlflow.start_run(run_name="ditto-entity-matcher"):
                 "sentencepiece",
                 "mlflow>=2.10.0",
                 "huggingface-hub"
-            ],
-            extra_pip_requirements=[]  # Disable auto-detection to avoid tensorflow error
+            ]
         )
 
     print(f"✅ Model registered in Unity Catalog as: {registered_model_name}")

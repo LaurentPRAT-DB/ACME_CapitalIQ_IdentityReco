@@ -1,25 +1,23 @@
-# Phase 2: Model Training
-# Only trains the Ditto model and saves to workspace storage
-# Run Phase 2b separately to register model to Unity Catalog
+# Phase 2b: Model Registration & Evaluation
+# Registers trained model to Unity Catalog and evaluates performance
+# Can run independently after Phase 2 training completes
 
 resources:
   jobs:
-    # Training job - Train model only
-    train_ditto_model:
-      name: "[${bundle.target}] Entity Matching - Phase 2: Train Model"
+    # Registration job - Register and evaluate model
+    register_evaluate_model:
+      name: "[${bundle.target}] Entity Matching - Phase 2b: Register & Evaluate Model"
 
       tasks:
-        - task_key: train_model
+        - task_key: register_and_evaluate
           notebook_task:
-            notebook_path: ../notebooks/02a_train_ditto_model.py
+            notebook_path: ../notebooks/02b_register_evaluate_model.py
             base_parameters:
               workspace_path: ${workspace.root_path}/files
               catalog_name: ${var.catalog_name}
-              num_positive_pairs: "1000"
-              num_negative_pairs: "1000"
               output_path: ${workspace.root_path}/training_data
               bundle_target: ${bundle.target}
-          timeout_seconds: 14400  # 4 hours for training
+          timeout_seconds: 3600  # 1 hour for registration and evaluation
 
       max_concurrent_runs: 1
       email_notifications:
@@ -30,5 +28,5 @@ resources:
       tags:
         project: entity_matching
         environment: ${bundle.target}
-        phase: "2"
-        step: model_training
+        phase: "2b"
+        step: model_registration

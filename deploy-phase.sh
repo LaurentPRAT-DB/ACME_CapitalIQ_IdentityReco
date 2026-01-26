@@ -35,6 +35,7 @@ get_phase_name() {
         0) echo "Catalog Setup" ;;
         1) echo "Data Load" ;;
         2) echo "Model Training" ;;
+        2b) echo "Model Registration & Evaluation" ;;
         3) echo "Model Deployment" ;;
         4) echo "Production Pipeline" ;;
         *) echo "Unknown" ;;
@@ -50,6 +51,7 @@ get_phase_job() {
         0) echo "setup_catalog" ;;
         1) echo "load_reference_data" ;;
         2) echo "train_ditto_model" ;;
+        2b) echo "register_evaluate_model" ;;
         3) echo "" ;;  # No job for model serving
         4) echo "entity_matching_pipeline" ;;
         *) echo "" ;;
@@ -61,11 +63,12 @@ if [ $# -lt 1 ]; then
     print_error "Usage: ./deploy-phase.sh <phase-number> [target]"
     echo ""
     echo "Phase numbers:"
-    echo "  0 - Catalog Setup (creates Unity Catalog and schemas)"
-    echo "  1 - Data Load (creates tables and loads reference data)"
-    echo "  2 - Model Training (trains Ditto model)"
-    echo "  3 - Model Deployment (deploys serving endpoint)"
-    echo "  4 - Production Pipeline (deploys production jobs)"
+    echo "  0  - Catalog Setup (creates Unity Catalog and schemas)"
+    echo "  1  - Data Load (creates tables and loads reference data)"
+    echo "  2  - Model Training (trains Ditto model only)"
+    echo "  2b - Model Registration & Evaluation (registers model to UC)"
+    echo "  3  - Model Deployment (deploys serving endpoint)"
+    echo "  4  - Production Pipeline (deploys production jobs)"
     echo ""
     echo "Target (optional, defaults to 'dev'):"
     echo "  dev     - Development environment"
@@ -75,7 +78,8 @@ if [ $# -lt 1 ]; then
     echo "Examples:"
     echo "  ./deploy-phase.sh 0 dev"
     echo "  ./deploy-phase.sh 1"
-    echo "  ./deploy-phase.sh 2 staging"
+    echo "  ./deploy-phase.sh 2 staging   # Train model"
+    echo "  ./deploy-phase.sh 2b dev      # Register model (independent)"
     exit 1
 fi
 
@@ -83,8 +87,8 @@ PHASE=$1
 TARGET=${2:-dev}
 
 # Validate phase number
-if [[ ! "$PHASE" =~ ^[0-4]$ ]]; then
-    print_error "Invalid phase number. Must be 0, 1, 2, 3, or 4"
+if [[ ! "$PHASE" =~ ^[0-4]$|^2b$ ]]; then
+    print_error "Invalid phase number. Must be 0, 1, 2, 2b, 3, or 4"
     exit 1
 fi
 
@@ -169,18 +173,33 @@ print_success "=========================================="
 echo ""
 
 # Show next steps
-if [ "$PHASE" -lt 4 ]; then
-    NEXT_PHASE=$((PHASE + 1))
-    NEXT_PHASE_NAME=$(get_phase_name "$NEXT_PHASE")
-    print_info "Next steps:"
-    echo "  1. Verify Phase $PHASE completed successfully"
-    echo "  2. Deploy Phase $NEXT_PHASE: ./deploy-phase.sh $NEXT_PHASE $TARGET"
-    echo "  3. Phase $NEXT_PHASE: $NEXT_PHASE_NAME"
-else
-    print_info "All phases deployed! Your entity matching pipeline is ready."
-    echo ""
-    echo "Next steps:"
-    echo "  - Monitor jobs in Databricks UI"
-    echo "  - Check model serving endpoint health"
-    echo "  - Review matched entities in gold tables"
-fi
+print_info "Next steps:"
+case "$PHASE" in
+    0)
+        echo "  1. Verify catalog created successfully"
+        echo "  2. Deploy Phase 1: ./deploy-phase.sh 1 $TARGET"
+        ;;
+    1)
+        echo "  1. Verify data loaded to bronze tables"
+        echo "  2. Deploy Phase 2: ./deploy-phase.sh 2 $TARGET"
+        ;;
+    2)
+        echo "  1. Wait for training to complete (2-4 hours)"
+        echo "  2. Deploy Phase 2b: ./deploy-phase.sh 2b $TARGET"
+        echo "  3. Or skip to Phase 3 if model already registered"
+        ;;
+    2b)
+        echo "  1. Verify model registered with Champion alias"
+        echo "  2. Deploy Phase 3: ./deploy-phase.sh 3 $TARGET"
+        ;;
+    3)
+        echo "  1. Wait for serving endpoint to be ready"
+        echo "  2. Deploy Phase 4: ./deploy-phase.sh 4 $TARGET"
+        ;;
+    4)
+        echo "  1. Monitor pipeline execution in Databricks UI"
+        echo "  2. Check matched entities in gold.matched_entities"
+        echo "  3. Review match quality metrics"
+        print_info "All phases deployed! Your entity matching pipeline is ready."
+        ;;
+esac
