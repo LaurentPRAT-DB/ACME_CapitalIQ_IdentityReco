@@ -207,38 +207,121 @@ with mlflow.start_run(run_name="ditto-entity-matcher"):
         val_split=0.2
     )
 
-    # Log model using MLflow's native transformers flavor
-    # This properly handles both model and tokenizer
-    components = {
-        "model": ditto.model,
-        "tokenizer": ditto.tokenizer
-    }
-
-    # Create signature for model serving
+    # Log model using a custom PyFunc wrapper to fix StreamToLogger.isatty() issue
     import pandas as pd
     from mlflow.models import infer_signature
+    import mlflow.pyfunc
 
-    # Create sample input for signature inference
-    sample_input = pd.DataFrame({
-        "left_entity": ["COL name VAL Apple Inc. COL ticker VAL AAPL"],
-        "right_entity": ["COL name VAL Apple Computer COL ticker VAL AAPL"]
-    })
+    # Create custom wrapper that patches sys.stdout during model loading
+    class DittoModelWrapper(mlflow.pyfunc.PythonModel):
+        def load_context(self, context):
+            """Load model with patched sys.stdout to handle isatty() issue"""
+            import sys
+            import os
 
-    # Log using transformers flavor with Unity Catalog three-level namespace
-    # Format: catalog.schema.model_name
-    registered_model_name = f"{catalog_name}.models.entity_matching_ditto"
+            # Monkey patch StreamToLogger to add isatty() method
+            original_stdout = sys.stdout
+            if hasattr(sys.stdout, '__class__') and sys.stdout.__class__.__name__ == 'StreamToLogger':
+                # Add isatty method if missing
+                if not hasattr(sys.stdout, 'isatty'):
+                    sys.stdout.isatty = lambda: False
 
-    model_info = mlflow.transformers.log_model(
-        transformers_model=components,
-        artifact_path="ditto-model",
-        registered_model_name=registered_model_name,
-        task="text-classification",  # Specify the task type
-        pip_requirements=[
-            "transformers>=4.40.0",
-            "torch>=2.1.0",
-            "sentencepiece",  # Required for some tokenizers
-        ]
-    )
+            # Set environment variable to disable color output
+            os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
+
+            # Now load the model
+            import mlflow.transformers
+            model_path = context.artifacts["model"]
+
+            # Load using transformers flavor
+            self.pipeline = mlflow.transformers.load_model(model_path)
+
+            # Restore original stdout
+            sys.stdout = original_stdout
+
+        def predict(self, context, model_input):
+            """Make predictions using the loaded model"""
+            import torch
+
+            # Handle both DataFrame and dict inputs
+            if isinstance(model_input, pd.DataFrame):
+                left = model_input["left_entity"].tolist()
+                right = model_input["right_entity"].tolist()
+            else:
+                left = model_input["left_entity"]
+                right = model_input["right_entity"]
+
+            # Combine inputs for text classification
+            texts = [f"{l} [SEP] {r}" for l, r in zip(left, right)]
+
+            # Get predictions
+            results = []
+            with torch.no_grad():
+                for text in texts:
+                    outputs = self.pipeline(text)
+                    pred = outputs[0]['label']
+                    score = outputs[0]['score']
+                    results.append({
+                        'prediction': 1 if pred == 'LABEL_1' else 0,
+                        'confidence': score
+                    })
+
+            return pd.DataFrame(results)
+
+    # Save model artifacts first
+    import tempfile
+    import shutil
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Save transformers model to temporary directory
+        model_tmpdir = os.path.join(tmpdir, "transformers_model")
+        os.makedirs(model_tmpdir, exist_ok=True)
+
+        # Log transformers model to temp location
+        components = {
+            "model": ditto.model,
+            "tokenizer": ditto.tokenizer
+        }
+
+        mlflow.transformers.save_model(
+            transformers_model=components,
+            path=model_tmpdir,
+            task="text-classification"
+        )
+
+        # Create sample input for signature inference
+        sample_input = pd.DataFrame({
+            "left_entity": ["COL name VAL Apple Inc. COL ticker VAL AAPL"],
+            "right_entity": ["COL name VAL Apple Computer COL ticker VAL AAPL"]
+        })
+
+        # Infer signature
+        wrapper = DittoModelWrapper()
+        # We need to mock the context for signature inference
+        class MockContext:
+            def __init__(self, model_path):
+                self.artifacts = {"model": model_path}
+
+        wrapper.load_context(MockContext(model_tmpdir))
+        sample_output = wrapper.predict(None, sample_input)
+        signature = infer_signature(sample_input, sample_output)
+
+        # Log using pyfunc flavor with Unity Catalog three-level namespace
+        registered_model_name = f"{catalog_name}.models.entity_matching_ditto"
+
+        model_info = mlflow.pyfunc.log_model(
+            artifact_path="ditto-model",
+            python_model=DittoModelWrapper(),
+            artifacts={"model": model_tmpdir},
+            registered_model_name=registered_model_name,
+            signature=signature,
+            pip_requirements=[
+                "transformers>=4.40.0",
+                "torch>=2.1.0",
+                "sentencepiece",
+                "mlflow>=2.10.0"
+            ]
+        )
 
     print(f"✅ Model registered in Unity Catalog as: {registered_model_name}")
     print(f"   Model URI: {model_info.model_uri}")
