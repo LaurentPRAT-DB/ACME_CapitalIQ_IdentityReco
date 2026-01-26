@@ -31,7 +31,7 @@ variables:
   # Model configuration
   ditto_model_version:
     description: Ditto model version to deploy
-    default: "1"
+    default: 1
 
   # Job schedule
   matching_job_schedule:

@@ -98,22 +98,100 @@ print("✓ Model signature created")
 
 # COMMAND ----------
 
+# MAGIC %md ### Create PyFunc Wrapper for Model Serving
+
+# COMMAND ----------
+
+# Create a custom PyFunc wrapper for model serving
+class DittoModelWrapper(mlflow.pyfunc.PythonModel):
+    """
+    MLflow PyFunc wrapper for Ditto entity matcher
+    Enables model serving with custom inference logic
+    """
+
+    def load_context(self, context):
+        """Load model and tokenizer from artifacts"""
+        import torch
+        from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+        # Load model artifacts
+        model_path = context.artifacts["model_path"]
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+        self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
+        self.model.eval()
+
+        # Set device
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model.to(self.device)
+
+        self.max_length = 256
+
+    def predict(self, context, model_input):
+        """
+        Predict entity matches
+
+        Args:
+            model_input: DataFrame with columns 'left_entity' and 'right_entity'
+
+        Returns:
+            DataFrame with columns 'prediction' (0/1) and 'confidence' (float)
+        """
+        import torch
+        import pandas as pd
+
+        # Extract entity pairs
+        left_entities = model_input["left_entity"].tolist()
+        right_entities = model_input["right_entity"].tolist()
+
+        # Tokenize
+        encodings = self.tokenizer(
+            left_entities,
+            right_entities,
+            truncation=True,
+            max_length=self.max_length,
+            padding="max_length",
+            return_tensors="pt"
+        ).to(self.device)
+
+        # Predict
+        with torch.no_grad():
+            outputs = self.model(**encodings)
+            logits = outputs.logits
+            probs = torch.softmax(logits, dim=-1)
+
+            predictions = torch.argmax(probs, dim=-1).cpu().numpy()
+            confidences = probs.cpu().numpy()
+
+            # Extract confidence for predicted class
+            result_confidence = [confidences[i][predictions[i]] for i in range(len(predictions))]
+
+        return pd.DataFrame({
+            "prediction": predictions.astype(int),
+            "confidence": result_confidence
+        })
+
+print("✓ PyFunc wrapper defined")
+
+# COMMAND ----------
+
 # MAGIC %md ### Log and Register Model
 
 # COMMAND ----------
 
 # Start an MLflow run to log the model
 with mlflow.start_run(run_name="model-registration") as run:
-    # Log the model with transformers flavor
-    mlflow.transformers.log_model(
-        transformers_model={
-            "model": model,
-            "tokenizer": tokenizer
-        },
+    # Log the model with PyFunc wrapper (for model serving compatibility)
+    mlflow.pyfunc.log_model(
         artifact_path="ditto_model",
-        task="text-classification",
+        python_model=DittoModelWrapper(),
+        artifacts={"model_path": model_path},
         signature=signature,
-        registered_model_name=model_name
+        registered_model_name=model_name,
+        pip_requirements=[
+            "transformers>=4.40.0",
+            "torch>=2.1.0",
+            "pandas>=1.5.0"
+        ]
     )
 
     # Log model metadata

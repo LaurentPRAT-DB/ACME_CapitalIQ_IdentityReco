@@ -12,7 +12,7 @@ resources:
         served_entities:
           - name: ditto-${bundle.target}
             entity_name: ${var.catalog_name}.models.entity_matching_ditto
-            entity_version: Champion
+            entity_version: ${var.ditto_model_version}
             workload_size: Small
             scale_to_zero_enabled: true
             environment_vars:

@@ -1,124 +1,79 @@
-# ⚡ Quick Start - Local Testing
+# Quick Start Guide
 
-**5-minute setup to test entity matching with Spark Connect**
+## TL;DR - Complete Deployment Steps
 
-## Prerequisites
-- Python 3.9+
-- Databricks workspace access
-- Running Databricks cluster
-
-## Setup (One-Time)
+For a complete dev environment deployment, run these commands in order:
 
 ```bash
-# 1. Install dependencies
-cd /Users/laurent.prat/Documents/lpdev/claude_code_training/MET_CapitalIQ_identityReco
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+# Make script executable (first time only)
+chmod +x deploy-phase.sh
 
-# 2. Configure Databricks CLI
-databricks configure --profile DEFAULT
-# Enter: https://dbc-xxxxx.cloud.databricks.com
-# Enter: dapi... (your token)
+# Phase 0: Create Unity Catalog and schemas
+./deploy-phase.sh 0 dev
 
-# 3. Create .env file
-cp .env.example .env
+# Phase 1: Create tables and load reference data
+./deploy-phase.sh 1 dev
 
-# 4. Edit .env - add your cluster ID
-echo "SPARK_CONNECT_CLUSTER_ID=your-cluster-id" >> .env
+# Phase 2: Train Ditto model
+./deploy-phase.sh 2 dev
+
+# Phase 3: Deploy model serving endpoint
+./deploy-phase.sh 3 dev
+
+# Phase 4: Deploy production pipeline
+./deploy-phase.sh 4 dev
 ```
 
-## Get Cluster ID
+## File Locations
 
-**Option 1: Databricks UI**
-- Go to Compute → Select cluster → Copy ID from URL
+- **Deployment Script**: `./deploy-phase.sh`
+- **Phase Config Files**: `databricks-phase0.yml` through `databricks-phase4.yml`
+- **Phase 0 Resources**: `resources/jobs_phase0_catalog.yml`
+- **Phase 1 Resources**: `resources/jobs_phase1_data.yml`
+- **Phase 2 Resources**: `resources/jobs_phase2_training.yml`
+- **Phase 3 Resources**: `resources/jobs_phase3_serving.yml`
+- **Phase 4 Resources**: `resources/jobs_phase4_pipeline.yml`
 
-**Option 2: CLI**
+## Key Catalog Names
+
+| Environment | Catalog Name |
+|-------------|--------------|
+| Dev | `laurent_prat_entity_matching_dev` |
+| Staging | `entity_matching_staging` |
+| Prod | `entity_matching` |
+
+## Troubleshooting Quick Fixes
+
+### "Catalog does not exist"
 ```bash
-databricks clusters list
+./deploy-phase.sh 0 dev
 ```
 
-## Test
+### "Endpoint name too long"
+Already fixed in `model_serving.yml` - endpoint name is `ditto-em-${bundle.target}`
 
+### "RegisteredModel does not exist"
+Ensure Phase 1 training job completed successfully. Check:
 ```bash
-# Test connection
-python test_spark_connect.py
-
-# Run example
-python example_spark_connect.py
+# Verify model exists in Unity Catalog
+databricks models list --catalog laurent_prat_entity_matching_dev
 ```
 
-## Quick Test Commands
-
+### Clean slate restart
 ```bash
-# Test 1: Basic Spark Connect
-python -c "
-from dotenv import load_dotenv
-from src.utils.spark_utils import get_spark_session
-load_dotenv()
-spark = get_spark_session()
-print(f'✓ Connected! Spark {spark.version}')
-spark.range(10).show()
-"
-
-# Test 2: Entity Matching
-python example.py
-
-# Test 3: Full Pipeline
-python example_spark_connect.py
+databricks bundle destroy -t dev
+./deploy-phase.sh 0 dev
+./deploy-phase.sh 1 dev
 ```
 
-## Common Issues
+## Permissions (Dev Environment)
 
-### "Databricks CLI not configured"
-```bash
-databricks configure --profile DEFAULT
-```
+- **CAN_MANAGE**: laurent.prat@databricks.com (current user)
+- **CAN_VIEW**: Group "account users"
 
-### "Cluster ID required"
-```bash
-# Add to .env
-echo "SPARK_CONNECT_CLUSTER_ID=1234-567890-abcdefgh" >> .env
-```
+## Next Steps
 
-### "Connection refused"
-- Check cluster is running in Databricks UI
-- Verify cluster ID is correct
-
-### Use Local Spark Instead
-```bash
-# Add to .env
-echo "USE_SPARK_CONNECT=false" >> .env
-```
-
-## What's Next?
-
-- ✅ Test passed? → See `notebooks/` for examples
-- ❌ Issues? → Read `LOCAL_TESTING_GUIDE.md`
-- 📚 Learn more? → Read `SPARK_CONNECT_GUIDE.md`
-
-## Essential Commands
-
-```bash
-# Activate environment
-source .venv/bin/activate
-
-# Test connection
-python test_spark_connect.py
-
-# Run example
-python example_spark_connect.py
-
-# Check cluster status
-databricks clusters get --cluster-id <your-id>
-
-# List clusters
-databricks clusters list
-
-# Verify config
-databricks auth env --profile DEFAULT
-```
-
----
-
-**Full Guide**: `LOCAL_TESTING_GUIDE.md`
+After successful deployment, see:
+- **Full Guide**: `DEPLOYMENT_GUIDE.md`
+- **Testing**: Run the ad-hoc matching job to test the pipeline
+- **Monitoring**: Check job runs in Workflows UI
