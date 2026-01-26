@@ -4,13 +4,14 @@
 bundle:
   name: entity_matching
 
-# PHASE 3: Model Deployment
-# Deploys the trained model to a serving endpoint
-# Prerequisites: Phases 0, 1, and 2 must be completed
-# Deploy with: databricks bundle deploy -t dev --config-file databricks-phase3.yml
+# PHASE 2: Model Training
+# Generates training data and trains the Ditto model
+# Prerequisites: Phases 0 and 1 must be completed
+# Deploy with: databricks bundle deploy -t dev --config-file databricks-phase2.yml
+# Run with: databricks bundle run train_ditto_model -t dev --config-file databricks-phase2.yml
 
 include:
-  - resources/jobs_phase3_serving.yml
+  - resources/jobs_phase2_training.yml
 
 # Variables that can be overridden
 variables:
@@ -31,7 +32,7 @@ variables:
   # Model configuration
   ditto_model_version:
     description: Ditto model version to deploy
-    default: 1
+    default: "1"
 
   # Job schedule
   matching_job_schedule:
@@ -60,14 +61,6 @@ targets:
         user_name: ${workspace.current_user.userName}
       - level: CAN_VIEW
         group_name: "users"
-    resources:
-      model_serving_endpoints:
-        ditto_matcher:
-          permissions:
-            - level: CAN_MANAGE
-              user_name: ${workspace.current_user.userName}
-            - level: CAN_QUERY
-              user_name: ${workspace.current_user.userName}
 
   # Staging target
   staging:
@@ -83,16 +76,6 @@ targets:
         user_name: ${workspace.current_user.userName}
       - level: CAN_VIEW
         group_name: users
-    resources:
-      model_serving_endpoints:
-        ditto_matcher:
-          permissions:
-            - level: CAN_MANAGE
-              user_name: ${workspace.current_user.userName}
-            - level: CAN_QUERY
-              user_name: ${workspace.current_user.userName}
-            - level: CAN_QUERY
-              group_name: users
 
   # Production target
   prod:
@@ -109,16 +92,6 @@ targets:
         user_name: ${workspace.current_user.userName}
       - level: CAN_VIEW
         group_name: users
-    resources:
-      model_serving_endpoints:
-        ditto_matcher:
-          permissions:
-            - level: CAN_MANAGE
-              user_name: ${workspace.current_user.userName}
-            - level: CAN_QUERY
-              user_name: ${workspace.current_user.userName}
-            - level: CAN_QUERY
-              group_name: users
 
 # Sync configuration
 sync:

@@ -320,7 +320,8 @@ with mlflow.start_run(run_name="ditto-entity-matcher"):
                 "torch>=2.1.0",
                 "sentencepiece",
                 "mlflow>=2.10.0"
-            ]
+            ],
+            extra_pip_requirements=[]  # Disable auto-detection to avoid tensorflow error
         )
 
     print(f"✅ Model registered in Unity Catalog as: {registered_model_name}")
