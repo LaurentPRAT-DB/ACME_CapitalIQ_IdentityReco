@@ -8,7 +8,7 @@ resources:
       name: "[${bundle.target}] Entity Matching - Phase 2: Train Model"
 
       tasks:
-        - task_key: generate_training_data
+        - task_key: train_and_register_model
           notebook_task:
             notebook_path: ../notebooks/02_train_ditto_model.py
             base_parameters:
@@ -17,32 +17,7 @@ resources:
               num_positive_pairs: "1000"
               num_negative_pairs: "1000"
               output_path: ${workspace.root_path}/training_data
-          timeout_seconds: 7200
-
-        - task_key: train_model
-          depends_on:
-            - task_key: generate_training_data
-          python_wheel_task:
-            package_name: entity_matching
-            entry_point: train_ditto
-            parameters:
-              - --training-data
-              - ${workspace.root_path}/training_data/ditto_training.csv
-              - --output-path
-              - ${workspace.root_path}/models/ditto_matcher
-              - --epochs
-              - "20"
-          timeout_seconds: 14400  # 4 hours
-
-        - task_key: register_model
-          depends_on:
-            - task_key: train_model
-          notebook_task:
-            notebook_path: ../notebooks/setup/03_register_model.py
-            base_parameters:
-              model_path: ${workspace.root_path}/models/ditto_matcher
-              model_name: ${var.catalog_name}.models.entity_matching_ditto
-          timeout_seconds: 1800
+          timeout_seconds: 14400  # 4 hours for full training pipeline
 
       max_concurrent_runs: 1
       email_notifications:
