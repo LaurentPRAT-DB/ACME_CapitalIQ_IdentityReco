@@ -155,7 +155,13 @@ ditto = DittoMatcher(
 
 # Setup MLflow experiment
 # Use a simple experiment path under the user's workspace
-username = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
+from pyspark.dbutils import DBUtils
+
+dbutils = DBUtils(spark)
+username = dbutils.notebook.entry_point.getDbutils().notebook().getContext().userName().get()
+
+# lpt: username = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
+
 experiment_name = f"{catalog_name}-ditto-model-training"
 experiment_path = f"/Users/{username}/{experiment_name}"
 
@@ -182,7 +188,7 @@ with mlflow.start_run(run_name="ditto-entity-matcher"):
     mlflow.log_param("base_model", "distilbert-base-uncased")
     mlflow.log_param("max_length", 256)
     mlflow.log_param("epochs", 1)
-    mlflow.log_param("batch_size", 64)
+    mlflow.log_param("batch_size", 16) # 64 -> 16
     mlflow.log_param("learning_rate", 3e-5)
     mlflow.log_param("training_pairs", len(training_df_augmented))
 
@@ -194,7 +200,7 @@ with mlflow.start_run(run_name="ditto-entity-matcher"):
         training_data_path=training_data_path,
         output_path=model_output_path,
         epochs=1,
-        batch_size=64,
+        batch_size=16, # 64 -> 16
         learning_rate=3e-5,
         val_split=0.2
     )
@@ -355,6 +361,9 @@ client = MlflowClient()
 
 # Define endpoint name
 endpoint_name = "ditto-entity"
+# Format: catalog.schema.model_name
+# registered_model_name = f"{catalog_name}.models.entity_matching_ditto"
+uc_model_name = registered_model_name
 
 # Check if endpoint exists
 try:
