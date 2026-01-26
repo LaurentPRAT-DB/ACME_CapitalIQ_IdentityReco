@@ -15,7 +15,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --upgrade transformers>=4.40.0 torch>=2.1.0 sentence-transformers>=2.3.0 scikit-learn mlflow
+# MAGIC %pip install --upgrade transformers>=4.40.0 torch>=2.1.0 sentence-transformers>=2.3.0 scikit-learn mlflow databricks-sdk
 
 # COMMAND ----------
 
@@ -32,12 +32,14 @@ dbutils.widgets.text("catalog_name", "entity_matching")
 dbutils.widgets.text("num_positive_pairs", "1000")
 dbutils.widgets.text("num_negative_pairs", "1000")
 dbutils.widgets.text("output_path", "/Workspace/Users/${workspace.current_user.userName}/.bundle/entity_matching/dev/training_data")
+dbutils.widgets.text("bundle_target", "dev")
 
 workspace_path = dbutils.widgets.get("workspace_path")
 catalog_name = dbutils.widgets.get("catalog_name")
 num_positive_pairs = int(dbutils.widgets.get("num_positive_pairs"))
 num_negative_pairs = int(dbutils.widgets.get("num_negative_pairs"))
 output_path = dbutils.widgets.get("output_path")
+bundle_target = dbutils.widgets.get("bundle_target")
 
 print(f"Using catalog: {catalog_name}")
 print(f"Workspace path: {workspace_path}")
@@ -339,88 +341,13 @@ for i, (left, right) in enumerate(test_pairs, 1):
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 7. Deploy to Model Serving
-
-# COMMAND ----------
-
-# MAGIC %pip install --upgrade databricks-sdk
-
-# COMMAND ----------
-
-dbutils.library.restartPython()
-
-# COMMAND ----------
-
-import mlflow
-from mlflow.tracking import MlflowClient
-from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput
-
-w = WorkspaceClient()
-client = MlflowClient()
-
-# Define endpoint name
-endpoint_name = "ditto-entity"
-# Format: catalog.schema.model_name
-# registered_model_name = f"{catalog_name}.models.entity_matching_ditto"
-uc_model_name = registered_model_name
-
-# Check if endpoint exists
-try:
-    w.serving_endpoints.get(endpoint_name)
-    endpoint_exists = True
-except Exception:
-    endpoint_exists = False
-
-# Resolve Champion alias to a numeric version
-champion_info = client.get_model_version_by_alias(
-    uc_model_name,
-    "Champion"
-)
-champion_version = str(champion_info.version)
-print(f" champion version: {champion_version}")
-
-if endpoint_exists:
-    print(f"⚠️  Endpoint '{endpoint_name}' already exists. Updating configuration...")
-    w.serving_endpoints.update_config(
-        name=endpoint_name,
-        served_entities=[
-            ServedEntityInput(
-                name=endpoint_name,
-                entity_name=uc_model_name,
-                entity_version=champion_version,
-                workload_size="Small",
-                scale_to_zero_enabled=True,
-            )
-        ],
-    )
-    print(f"✅ Endpoint '{endpoint_name}' updated successfully!")
-else:
-    print(f"Creating new serving endpoint '{endpoint_name}'...")
-    w.serving_endpoints.create(
-        name=endpoint_name,
-        config=EndpointCoreConfigInput(
-            served_entities=[
-                ServedEntityInput(
-                    name="ditto-entity",
-                    entity_name=uc_model_name,
-                    entity_version=champion_version,
-                    workload_size="Small",
-                    scale_to_zero_enabled=True,
-                )
-            ]
-        ),
-    )
-    print(f"✅ Endpoint '{endpoint_name}' created successfully!")
-
-print(f"Serving Unity Catalog model: {uc_model_name} (version resolved from Champion alias -> {champion_version})")
-
-# COMMAND ----------
-
-# MAGIC %md
 # MAGIC ## Next Steps
 # MAGIC
-# MAGIC 1. **Test deployed endpoint**: Query the serving endpoint with sample data
-# MAGIC 2. **Integrate with pipeline**: Update `HybridMatchingPipeline` with Ditto model path
-# MAGIC 3. **Monitor performance**: Track inference latency and accuracy
-# MAGIC 4. **Retrain periodically**: Update model as new training data becomes available
+# MAGIC 1. **Deploy serving endpoint**: Run Phase 3 DAB deployment to create/update the serving endpoint
+# MAGIC    ```bash
+# MAGIC    ./deploy-phase.sh 3 dev
+# MAGIC    ```
+# MAGIC 2. **Test deployed endpoint**: Query the serving endpoint with sample data
+# MAGIC 3. **Run production pipeline**: Execute Phase 4 to process entities using the full hybrid pipeline
+# MAGIC 4. **Monitor performance**: Track inference latency and accuracy
+# MAGIC 5. **Retrain periodically**: Update model as new training data becomes available

@@ -92,17 +92,66 @@ from src.data.preprocessor import create_entity_features
 print("Loading BGE embeddings model...")
 embeddings_model = BGEEmbeddings(model_name="BAAI/bge-large-en-v1.5")
 
-# Initialize Ditto matcher from model serving endpoint or UC model
-print("Loading Ditto matcher...")
-ditto_matcher = DittoMatcher()
-ditto_model_path = f"models:/{catalog_name}.models.entity_matching_ditto/1"
+# Initialize Ditto matcher - use serving endpoint for production
+print(f"Connecting to Ditto serving endpoint: {ditto_endpoint}")
+
+# Import MLflow deployments for endpoint queries
+import mlflow.deployments
+
 try:
-    ditto_matcher.load_model(ditto_model_path)
-    print(f"✓ Loaded Ditto model from: {ditto_model_path}")
+    # Initialize deployments client for endpoint queries
+    deploy_client = mlflow.deployments.get_deploy_client("databricks")
+
+    # Test endpoint connection
+    endpoint_info = deploy_client.get_endpoint(ditto_endpoint)
+    print(f"✓ Connected to Ditto endpoint: {ditto_endpoint}")
+    print(f"  Endpoint state: {endpoint_info.get('state', {}).get('ready', 'unknown')}")
+    use_endpoint = True
 except Exception as e:
-    print(f"⚠ Could not load Ditto model from UC: {e}")
-    print("Continuing without Ditto matcher - will use vector search only")
-    ditto_matcher = None
+    print(f"⚠ Could not connect to Ditto endpoint: {e}")
+    print("Falling back to loading model directly from Unity Catalog")
+    use_endpoint = False
+
+    # Fallback: Load model from UC
+    ditto_matcher = DittoMatcher()
+    ditto_model_path = f"models:/{catalog_name}.models.entity_matching_ditto@Champion"
+    try:
+        ditto_matcher.load_model(ditto_model_path)
+        print(f"✓ Loaded Ditto model from UC: {ditto_model_path}")
+    except Exception as e2:
+        print(f"⚠ Could not load Ditto model from UC: {e2}")
+        print("Continuing without Ditto matcher - will use vector search only")
+        ditto_matcher = None
+
+# Helper function to predict using endpoint or direct model
+def predict_ditto(left_text, right_text):
+    """Query Ditto model via serving endpoint or direct model"""
+    if use_endpoint:
+        try:
+            response = deploy_client.predict(
+                endpoint=ditto_endpoint,
+                inputs={
+                    "dataframe_split": {
+                        "columns": ["left_entity", "right_entity"],
+                        "data": [[left_text, right_text]]
+                    }
+                }
+            )
+            # Parse response - predictions is a list
+            predictions = response.get("predictions", [0])
+            prediction = predictions[0] if predictions else 0
+            # Confidence may be in response or need to be extracted
+            confidence = response.get("confidence", [0.5])[0] if "confidence" in response else 0.5
+            return prediction, confidence
+        except Exception as e:
+            print(f"⚠ Endpoint query failed: {e}, falling back to direct model")
+            if ditto_matcher:
+                return ditto_matcher.predict(left_text, right_text)
+            return 0, 0.0
+    elif ditto_matcher:
+        return ditto_matcher.predict(left_text, right_text)
+    else:
+        return 0, 0.0
 
 # COMMAND ----------
 
@@ -164,19 +213,20 @@ for idx, entity in unmatched_pandas.iterrows():
     best_reasoning = "No match found"
     match_method = "vector_search"
 
-    if candidates and ditto_matcher:
-        # Try Ditto on top candidates
+    if candidates and (use_endpoint or ditto_matcher):
+        # Try Ditto on top candidates (using endpoint or direct model)
         for candidate in candidates[:3]:  # Check top 3
             candidate_entity = candidate["metadata"]
             candidate_text = create_entity_features(candidate_entity)
 
-            # Predict with Ditto
-            prediction, confidence = ditto_matcher.predict(entity_text, candidate_text)
+            # Predict with Ditto (via endpoint or direct model)
+            prediction, confidence = predict_ditto(entity_text, candidate_text)
 
             if prediction == 1 and confidence > best_confidence:
                 best_match = candidate
                 best_confidence = confidence
-                best_reasoning = f"Ditto match (confidence: {confidence:.2%}, vector similarity: {candidate['similarity']:.2%})"
+                method_type = "endpoint" if use_endpoint else "direct model"
+                best_reasoning = f"Ditto match via {method_type} (confidence: {confidence:.2%}, vector similarity: {candidate['similarity']:.2%})"
                 match_method = "ditto_matcher"
 
     elif candidates:

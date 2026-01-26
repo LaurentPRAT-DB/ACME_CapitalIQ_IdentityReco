@@ -17,6 +17,7 @@ resources:
               num_positive_pairs: "1000"
               num_negative_pairs: "1000"
               output_path: ${workspace.root_path}/training_data
+              bundle_target: ${bundle.target}
           timeout_seconds: 14400  # 4 hours for full training pipeline
 
       max_concurrent_runs: 1

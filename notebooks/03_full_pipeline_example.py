@@ -99,13 +99,13 @@ display(source_df.head())
 # Initialize Databricks client for Foundation Model
 w = WorkspaceClient()
 
-# Initialize hybrid pipeline with all stages
-# Use model from Unity Catalog if available
-ditto_model_path = f"models:/{catalog_name}.models.entity_matching_ditto/1"
+# Option 1: Initialize pipeline with UC model (current approach)
+# Use model from Unity Catalog if available (Champion alias for latest version)
+ditto_model_path = f"models:/{catalog_name}.models.entity_matching_ditto@Champion"
 
 pipeline = HybridMatchingPipeline(
     reference_df=reference_df,
-    ditto_model_path=ditto_model_path,  # Trained model from UC
+    ditto_model_path=ditto_model_path,  # Trained model from UC (Champion alias)
     embeddings_model_name="BAAI/bge-large-en-v1.5",
     foundation_model_name="databricks-dbrx-instruct",
     ditto_high_confidence=0.90,  # Auto-accept threshold
@@ -113,6 +113,28 @@ pipeline = HybridMatchingPipeline(
     enable_foundation_model=True,
     databricks_client=w
 )
+
+# Option 2: For production, consider using serving endpoint directly
+# This provides better performance and auto-scaling
+# Example of querying the endpoint:
+"""
+import mlflow.deployments
+
+ditto_endpoint = f"ditto-em-{bundle.target}"  # e.g., "ditto-em-dev"
+deploy_client = mlflow.deployments.get_deploy_client("databricks")
+
+# Query endpoint
+response = deploy_client.predict(
+    endpoint=ditto_endpoint,
+    inputs={
+        "dataframe_split": {
+            "columns": ["left_entity", "right_entity"],
+            "data": [["entity1_text", "entity2_text"]]
+        }
+    }
+)
+prediction = response["predictions"][0]
+"""
 
 # COMMAND ----------
 
