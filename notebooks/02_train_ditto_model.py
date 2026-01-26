@@ -15,7 +15,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --upgrade transformers>=4.40.0 torch>=2.1.0 sentence-transformers>=2.3.0 scikit-learn mlflow databricks-sdk
+# MAGIC %pip install --upgrade transformers>=4.40.0 torch>=2.1.0 sentence-transformers>=2.3.0 scikit-learn mlflow databricks-sdk huggingface-hub
 
 # COMMAND ----------
 
@@ -319,7 +319,8 @@ with mlflow.start_run(run_name="ditto-entity-matcher"):
                 "transformers>=4.40.0",
                 "torch>=2.1.0",
                 "sentencepiece",
-                "mlflow>=2.10.0"
+                "mlflow>=2.10.0",
+                "huggingface-hub"
             ],
             extra_pip_requirements=[]  # Disable auto-detection to avoid tensorflow error
         )
