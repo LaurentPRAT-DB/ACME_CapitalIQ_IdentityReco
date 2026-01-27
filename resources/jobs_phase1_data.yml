@@ -21,3 +21,36 @@ resources:
         environment: ${bundle.target}
         phase: "1"
         step: data_load
+
+    # Large-scale test data loader - Generate and load test datasets
+    load_large_test_data:
+      name: "[${bundle.target}] Entity Matching - Phase 1: Load Large-Scale Test Data"
+
+      parameters:
+        - name: num_reference_entities
+          default: ${var.test_data_reference_size}
+        - name: num_source_entities
+          default: ${var.test_data_source_size}
+        - name: match_ratio
+          default: ${var.test_data_match_ratio}
+        - name: mode
+          default: ${var.test_data_write_mode}
+
+      tasks:
+        - task_key: load_large_test_dataset
+          notebook_task:
+            notebook_path: ../notebooks/setup/03_load_large_test_dataset.py
+            base_parameters:
+              catalog_name: ${var.catalog_name}
+              num_reference_entities: "{{job.parameters.num_reference_entities}}"
+              num_source_entities: "{{job.parameters.num_source_entities}}"
+              match_ratio: "{{job.parameters.match_ratio}}"
+              mode: "{{job.parameters.mode}}"
+          timeout_seconds: 3600
+
+      max_concurrent_runs: 1
+      tags:
+        project: entity_matching
+        environment: ${bundle.target}
+        phase: "1"
+        step: load_test_data

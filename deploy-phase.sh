@@ -181,7 +181,9 @@ case "$PHASE" in
         ;;
     1)
         echo "  1. Verify data loaded to bronze tables"
-        echo "  2. Deploy Phase 2: ./deploy-phase.sh 2 $TARGET"
+        echo "  2. (Optional) Load large-scale test data:"
+        echo "     databricks bundle run load_large_test_data -t $TARGET"
+        echo "  3. Deploy Phase 2: ./deploy-phase.sh 2 $TARGET"
         ;;
     2)
         echo "  1. Wait for training to complete (2-4 hours)"

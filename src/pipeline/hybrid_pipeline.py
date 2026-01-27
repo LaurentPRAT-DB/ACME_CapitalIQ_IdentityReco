@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 from ..data.preprocessor import EntityPreprocessor, create_entity_features
-from ..models.embeddings import BGEEmbeddings
+from ..models.embeddings import BGEEmbeddings, create_embeddings_model
 from ..models.ditto_matcher import DittoMatcher
 from ..models.vector_search import VectorSearchIndex
 from ..models.foundation_model import FoundationModelMatcher
@@ -26,7 +26,8 @@ class HybridMatchingPipeline:
         self,
         reference_df,
         ditto_model_path: Optional[str] = None,
-        embeddings_model_name: str = "BAAI/bge-large-en-v1.5",
+        embeddings_provider: str = "huggingface",
+        embeddings_model_name: str = None,
         foundation_model_name: str = "databricks-dbrx-instruct",
         ditto_high_confidence: float = 0.90,
         ditto_low_confidence: float = 0.70,
@@ -39,7 +40,10 @@ class HybridMatchingPipeline:
         Args:
             reference_df: S&P Capital IQ reference data
             ditto_model_path: Path to trained Ditto model
-            embeddings_model_name: BGE model name
+            embeddings_provider: "huggingface" or "databricks" (default: "huggingface")
+            embeddings_model_name: Model name (provider-specific default if None)
+                - Hugging Face: "BAAI/bge-large-en-v1.5" (default)
+                - Databricks: "databricks-gte-large-en" (default)
             foundation_model_name: Foundation model name
             ditto_high_confidence: High confidence threshold for auto-accept
             ditto_low_confidence: Low confidence threshold for Foundation Model
@@ -59,8 +63,12 @@ class HybridMatchingPipeline:
         self.exact_matcher = ExactMatcher(reference_df)
 
         # Stage 2: Embeddings + Vector Search
-        print("Initializing BGE Embeddings...")
-        self.embeddings_model = BGEEmbeddings(model_name=embeddings_model_name)
+        print(f"Initializing Embeddings (provider: {embeddings_provider})...")
+        self.embeddings_model = create_embeddings_model(
+            provider=embeddings_provider,
+            model_name=embeddings_model_name,
+            databricks_client=databricks_client
+        )
 
         print("Building Vector Search Index...")
         self.vector_index = self._build_vector_index()

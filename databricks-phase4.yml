@@ -34,6 +34,24 @@ variables:
     description: Ditto model version to deploy
     default: "1"
 
+  # Endpoint configuration
+  ditto_endpoint_name:
+    description: Ditto model serving endpoint name
+    default: ditto-em-${bundle.target}
+
+  vector_search_endpoint_name:
+    description: Vector search endpoint name
+    default: entity-matching-vs-${bundle.target}
+
+  # Embeddings configuration
+  embeddings_provider:
+    description: Embeddings provider (huggingface or databricks)
+    default: huggingface
+
+  embeddings_model_name:
+    description: Embeddings model name (provider-specific default if empty)
+    default: ""
+
   # Job schedule
   matching_job_schedule:
     description: Cron schedule for matching job
@@ -54,6 +72,7 @@ targets:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/dev
     variables:
       catalog_name: laurent_prat_entity_matching_dev
+      ditto_endpoint_name: ditto-em-dev-2  # Custom endpoint name
     run_as:
       user_name: ${workspace.current_user.userName}
     permissions:

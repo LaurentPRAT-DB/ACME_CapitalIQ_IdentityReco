@@ -21,7 +21,7 @@ spark.sql(f"USE CATALOG {catalog_name}")
 
 # COMMAND ----------
 
-from pyspark.sql.functions import count, avg, sum, when, col
+from pyspark.sql.functions import count, avg, sum as spark_sum, when, col
 
 # Get today's matches
 today_matches = spark.sql(f"""
@@ -55,16 +55,16 @@ agg_exprs = [
 ]
 
 if has_auto_matched:
-    agg_exprs.append(sum(when(col("auto_matched"), 1).otherwise(0)).alias("auto_matched_count"))
+    agg_exprs.append(spark_sum(when(col("auto_matched"), 1).otherwise(0)).alias("auto_matched_count"))
 else:
     # Fall back to confidence-based calculation
-    agg_exprs.append(sum(when(col("match_confidence") >= 0.90, 1).otherwise(0)).alias("auto_matched_count"))
+    agg_exprs.append(spark_sum(when(col("match_confidence") >= 0.90, 1).otherwise(0)).alias("auto_matched_count"))
 
 if has_needs_review:
-    agg_exprs.append(sum(when(col("needs_review"), 1).otherwise(0)).alias("review_count"))
+    agg_exprs.append(spark_sum(when(col("needs_review"), 1).otherwise(0)).alias("review_count"))
 else:
     # Fall back to confidence-based calculation
-    agg_exprs.append(sum(when(col("match_confidence") < 0.70, 1).otherwise(0)).alias("review_count"))
+    agg_exprs.append(spark_sum(when(col("match_confidence") < 0.70, 1).otherwise(0)).alias("review_count"))
 
 stats = today_matches.agg(*agg_exprs).collect()[0]
 

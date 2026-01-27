@@ -154,6 +154,67 @@ class BGEEmbeddings:
         return similarities
 
 
+def create_embeddings_model(
+    provider: str = "huggingface",
+    model_name: str = None,
+    databricks_client=None,
+    **kwargs
+):
+    """
+    Factory function to create embeddings model based on provider
+
+    Args:
+        provider: "huggingface" or "databricks"
+        model_name: Model name (provider-specific default if None)
+        databricks_client: Databricks WorkspaceClient (for Databricks provider)
+        **kwargs: Additional arguments for the embeddings model
+
+    Returns:
+        Embeddings model instance (BGEEmbeddings or DatabricksEmbeddings)
+
+    Examples:
+        # Hugging Face (default)
+        model = create_embeddings_model(provider="huggingface")
+
+        # Databricks
+        from databricks.sdk import WorkspaceClient
+        model = create_embeddings_model(
+            provider="databricks",
+            model_name="databricks-gte-large-en",
+            databricks_client=WorkspaceClient()
+        )
+    """
+    provider = provider.lower()
+
+    if provider == "huggingface" or provider == "hf":
+        # Default to BGE model for Hugging Face
+        if model_name is None:
+            model_name = "BAAI/bge-large-en-v1.5"
+
+        print(f"Creating Hugging Face embeddings model: {model_name}")
+        return BGEEmbeddings(model_name=model_name, **kwargs)
+
+    elif provider == "databricks" or provider == "db":
+        from .databricks_embeddings import DatabricksEmbeddings
+
+        # Default to GTE model for Databricks
+        if model_name is None:
+            model_name = "databricks-gte-large-en"
+
+        print(f"Creating Databricks embeddings model: {model_name}")
+        return DatabricksEmbeddings(
+            model_name=model_name,
+            client=databricks_client,
+            **kwargs
+        )
+
+    else:
+        raise ValueError(
+            f"Unknown embeddings provider: {provider}. "
+            f"Supported providers: 'huggingface', 'databricks'"
+        )
+
+
 def create_embeddings_udf(model_name: str = "BAAI/bge-large-en-v1.5"):
     """
     Create a Pandas UDF for PySpark to generate embeddings

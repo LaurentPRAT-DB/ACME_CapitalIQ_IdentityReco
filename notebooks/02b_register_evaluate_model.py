@@ -131,12 +131,21 @@ import tempfile
 # Create custom wrapper to handle model loading
 class DittoModelWrapper(mlflow.pyfunc.PythonModel):
     def load_context(self, context):
-        """Load model directly using transformers"""
+        """Load model directly using transformers (with isatty patch for model serving)"""
+        import sys
         import os
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-        # Set environment variable to disable warnings
+        # Patch sys.stdout to add isatty() method if missing
+        # This fixes the issue in MLflow model serving where stdout is a StreamToLogger
+        if not hasattr(sys.stdout, 'isatty'):
+            sys.stdout.isatty = lambda: False
+        if not hasattr(sys.stderr, 'isatty'):
+            sys.stderr.isatty = lambda: False
+
+        # Set environment variables to disable color output
         os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
+        os.environ['TERM'] = 'dumb'  # Disable color
 
         # Load model and tokenizer from saved path
         model_path = context.artifacts["model"]

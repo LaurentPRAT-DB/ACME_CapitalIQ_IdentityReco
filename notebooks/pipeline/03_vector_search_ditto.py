@@ -6,6 +6,20 @@
 
 # COMMAND ----------
 
+# MAGIC %md ## Install Required Libraries
+# MAGIC
+# MAGIC **IMPORTANT:** Install libraries and restart Python FIRST, before any widget definitions or data loading
+
+# COMMAND ----------
+
+# MAGIC %pip install --upgrade transformers>=4.40.0 sentence-transformers>=2.3.0 torch>=2.1.0 faiss-cpu scikit-learn mlflow
+
+# COMMAND ----------
+
+dbutils.library.restartPython()
+
+# COMMAND ----------
+
 from __future__ import annotations
 
 # COMMAND ----------
@@ -13,10 +27,16 @@ from __future__ import annotations
 dbutils.widgets.text("catalog_name", "entity_matching", "Catalog Name")
 dbutils.widgets.text("ditto_endpoint", "ditto-em-dev", "Ditto Endpoint")
 dbutils.widgets.text("vector_search_endpoint", "entity-matching-vs-dev", "Vector Search Endpoint")
+dbutils.widgets.text("workspace_path", "", "Workspace Path")
+dbutils.widgets.dropdown("embeddings_provider", "huggingface", ["huggingface", "databricks"], "Embeddings Provider")
+dbutils.widgets.text("embeddings_model_name", "", "Embeddings Model (optional)")
 
 catalog_name = dbutils.widgets.get("catalog_name")
 ditto_endpoint = dbutils.widgets.get("ditto_endpoint")
 vs_endpoint = dbutils.widgets.get("vector_search_endpoint")
+workspace_path = dbutils.widgets.get("workspace_path")
+embeddings_provider = dbutils.widgets.get("embeddings_provider")
+embeddings_model_name = dbutils.widgets.get("embeddings_model_name") or None
 
 spark.sql(f"USE CATALOG {catalog_name}")
 
@@ -43,18 +63,6 @@ print(f"Entities to match with vector search: {unmatched_count}")
 
 # COMMAND ----------
 
-# MAGIC %md ## Install Required Libraries
-
-# COMMAND ----------
-
-# MAGIC %pip install --upgrade transformers>=4.40.0 sentence-transformers>=2.3.0 torch>=2.1.0 faiss-cpu scikit-learn mlflow
-
-# COMMAND ----------
-
-dbutils.library.restartPython()
-
-# COMMAND ----------
-
 # MAGIC %md ## Vector Search + Ditto Matching Implementation
 
 # COMMAND ----------
@@ -74,23 +82,27 @@ print(f"Processing {len(unmatched_pandas)} unmatched entities")
 
 # COMMAND ----------
 
-# Get workspace path for imports
-dbutils.widgets.text("workspace_path", "")
-workspace_path = dbutils.widgets.get("workspace_path")
-
+# Add workspace path for imports if provided
 if workspace_path:
     import sys
     sys.path.append(workspace_path)
     print(f"Added to sys.path: {workspace_path}")
 
-from src.models.embeddings import BGEEmbeddings
+from src.models.embeddings import create_embeddings_model
 from src.models.ditto_matcher import DittoMatcher
 from src.models.vector_search import VectorSearchIndex
 from src.data.preprocessor import create_entity_features
 
-# Initialize BGE embeddings model
-print("Loading BGE embeddings model...")
-embeddings_model = BGEEmbeddings(model_name="BAAI/bge-large-en-v1.5")
+# Initialize embeddings model (Hugging Face or Databricks)
+print(f"Loading embeddings model (provider: {embeddings_provider})...")
+if embeddings_model_name:
+    print(f"Using custom model: {embeddings_model_name}")
+
+embeddings_model = create_embeddings_model(
+    provider=embeddings_provider,
+    model_name=embeddings_model_name,
+    databricks_client=WorkspaceClient() if embeddings_provider == "databricks" else None
+)
 
 # Initialize Ditto matcher - use serving endpoint for production
 print(f"Connecting to Ditto serving endpoint: {ditto_endpoint}")

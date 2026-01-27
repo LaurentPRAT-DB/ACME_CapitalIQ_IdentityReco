@@ -4,14 +4,14 @@
 bundle:
   name: entity_matching
 
-# PHASE 2: Model Training
-# Generates training data and trains the Ditto model
-# Prerequisites: Phases 0 and 1 must be completed
-# Deploy with: databricks bundle deploy -t dev --config-file databricks-phase2.yml
-# Run with: databricks bundle run train_ditto_model -t dev --config-file databricks-phase2.yml
+# PHASE 1: Data Load
+# Creates tables and loads reference data
+# Prerequisites: Phase 0 must be completed
+# Deploy with: databricks bundle deploy -t dev --config-file databricks-phase1.yml
+# Run with: databricks bundle run load_reference_data -t dev --config-file databricks-phase1.yml
 
 include:
-  - resources/jobs_phase2_training.yml
+  - resources/jobs_phase1_data.yml
 
 # Variables that can be overridden
 variables:
@@ -38,6 +38,23 @@ variables:
   matching_job_schedule:
     description: Cron schedule for matching job
     default: "0 0 2 * * ?" # Daily at 2 AM
+
+  # Test data configuration
+  test_data_reference_size:
+    description: Number of reference entities to generate for test data
+    default: "1000"
+
+  test_data_source_size:
+    description: Number of source entities to generate for test data
+    default: "3000"
+
+  test_data_match_ratio:
+    description: Ratio of source entities that should match (0.7 = 70%)
+    default: "0.7"
+
+  test_data_write_mode:
+    description: Write mode for test data (append or overwrite)
+    default: "overwrite"
 
 # Workspace configuration
 workspace:

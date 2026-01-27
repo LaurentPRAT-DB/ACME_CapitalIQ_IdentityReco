@@ -4,14 +4,14 @@
 bundle:
   name: entity_matching
 
-# PHASE 2b: Model Registration & Evaluation
-# Registers trained model to Unity Catalog and evaluates performance
-# Can run independently after Phase 2 training completes
-# Prerequisites: Phase 2 (training) must be completed
-# Deploy with: ./deploy-phase.sh 2b dev
+# PHASE 4: Production Pipeline
+# Deploys production matching pipeline jobs
+# Prerequisites: Phases 0, 1, 2, and 3 must be completed
+# Deploy with: databricks bundle deploy -t dev --config-file databricks-phase4.yml
+# Run with: databricks bundle run entity_matching_pipeline -t dev --config-file databricks-phase4.yml
 
 include:
-  - resources/jobs_phase2b_registration.yml
+  - resources/jobs_phase4_pipeline.yml
 
 # Variables that can be overridden
 variables:
@@ -34,6 +34,24 @@ variables:
     description: Ditto model version to deploy
     default: "1"
 
+  # Endpoint configuration
+  ditto_endpoint_name:
+    description: Ditto model serving endpoint name
+    default: ditto-em-${bundle.target}
+
+  vector_search_endpoint_name:
+    description: Vector search endpoint name
+    default: entity-matching-vs-${bundle.target}
+
+  # Embeddings configuration
+  embeddings_provider:
+    description: Embeddings provider (huggingface or databricks)
+    default: huggingface
+
+  embeddings_model_name:
+    description: Embeddings model name (provider-specific default if empty)
+    default: ""
+
   # Job schedule
   matching_job_schedule:
     description: Cron schedule for matching job
@@ -54,6 +72,7 @@ targets:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/dev
     variables:
       catalog_name: laurent_prat_entity_matching_dev
+      ditto_endpoint_name: ditto-em-dev-2  # Custom endpoint name
     run_as:
       user_name: ${workspace.current_user.userName}
     permissions:

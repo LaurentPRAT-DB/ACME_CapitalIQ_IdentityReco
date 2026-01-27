@@ -38,8 +38,10 @@ resources:
             base_parameters:
               catalog_name: ${var.catalog_name}
               workspace_path: ${workspace.root_path}/files
-              ditto_endpoint: ditto-em-${bundle.target}
-              vector_search_endpoint: entity-matching-vs-${bundle.target}
+              ditto_endpoint: ${var.ditto_endpoint_name}
+              vector_search_endpoint: ${var.vector_search_endpoint_name}
+              embeddings_provider: ${var.embeddings_provider}
+              embeddings_model_name: ${var.embeddings_model_name}
           timeout_seconds: 7200
 
         - task_key: write_results
@@ -98,13 +100,6 @@ resources:
               source_table: "{{job.parameters.source_table}}"
               output_table: "{{job.parameters.output_table}}"
               date_filter: "{{job.parameters.date_filter}}"
-          libraries:
-            - pypi:
-                package: sentence-transformers>=2.3.0
-            - pypi:
-                package: transformers>=4.40.0
-            - pypi:
-                package: torch>=2.1.0
           timeout_seconds: 7200
 
       max_concurrent_runs: 3

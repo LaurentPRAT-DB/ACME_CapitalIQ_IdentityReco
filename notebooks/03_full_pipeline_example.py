@@ -106,8 +106,9 @@ ditto_model_path = f"models:/{catalog_name}.models.entity_matching_ditto@Champio
 pipeline = HybridMatchingPipeline(
     reference_df=reference_df,
     ditto_model_path=ditto_model_path,  # Trained model from UC (Champion alias)
-    embeddings_model_name="BAAI/bge-large-en-v1.5",
-    foundation_model_name="databricks-dbrx-instruct",
+    embeddings_provider="databricks",  # Use Databricks native embeddings
+    embeddings_model_name="databricks-gte-large-en",  # Databricks GTE model
+    foundation_model_name="databricks-meta-llama-3-3-70b-instruct",
     ditto_high_confidence=0.90,  # Auto-accept threshold
     ditto_low_confidence=0.70,   # Foundation Model fallback threshold
     enable_foundation_model=True,
@@ -120,7 +121,7 @@ pipeline = HybridMatchingPipeline(
 """
 import mlflow.deployments
 
-ditto_endpoint = f"ditto-em-{bundle.target}"  # e.g., "ditto-em-dev"
+ditto_endpoint = f"ditto-em-{bundle.target}"  # e.g., "ditto-em-dev".  lpt: because it was created manually the name is "ditto-em-dev-2" for dev
 deploy_client = mlflow.deployments.get_deploy_client("databricks")
 
 # Query endpoint
