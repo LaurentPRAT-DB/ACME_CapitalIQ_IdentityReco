@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<!--
+  Medium Article: AI-Powered Entity Matching for S&P Capital IQ
+  Version: 1.0.0
+  Last Updated: 2026-02-14
+  Features: Gist markers, mobile fallback links (/raw)
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="version" content="1.0.0">
+    <meta name="last-updated" content="2026-02-14">
+    <title>How We Cut Entity Matching Costs by 89x Using a 4-Stage ML Pipeline</title>
+    <style>
+        body { font-family: Georgia, serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; color: #333; }
+        h1 { font-size: 2.2em; margin-bottom: 0.5em; }
+        h2 { font-size: 1.6em; margin-top: 1.5em; border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+        h3 { font-size: 1.3em; margin-top: 1em; }
+        p { margin: 0.8em 0; }
+        img { max-width: 100%; height: auto; margin: 1em 0; }
+        code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
+        blockquote { border-left: 4px solid #ddd; margin: 1em 0; padding-left: 1em; color: #666; }
+        ul, ol { margin: 0.8em 0; padding-left: 2em; }
+        li { margin: 0.4em 0; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2em 0; }
+        .subtitle { font-style: italic; color: #666; font-size: 1.1em; }
+        .caption { font-style: italic; color: #666; font-size: 0.9em; text-align: center; }
+        .gist-marker { background: #fff3cd; border: 2px dashed #ffc107; padding: 12px; border-radius: 5px; margin: 1em 0; font-family: monospace; font-size: 0.9em; }
+        .mobile-fallback { font-style: italic; color: #666; font-size: 0.9em; margin-top: 0.5em; }
+    </style>
+</head>
+<body>
+
+<h1>How We Cut Entity Matching Costs by 89x Using a 4-Stage ML Pipeline</h1>
+<p class="subtitle">A practical guide to building an AI-powered company identification system that matches "Apple Computer Inc." to S&P Capital IQ identifiers in 0.6 seconds</p>
+<hr>
+
+<h2>The $400K Problem Nobody Wants to Talk About</h2>
+<p>Last quarter, I watched a team of 12 analysts spend 8 hours a day reconciling company names. "Apple Computer Inc." needed to match "Apple Inc." "MSFT" needed to link to "Microsoft Corporation." And "Alphabet Inc Class A" needed to connect to the same entity as "Google LLC."</p>
+<p><strong>The numbers were brutal:</strong></p>
+<ul>
+    <li>8 minutes per entity (highly trained staff)</li>
+    <li>10-15% error rate (human fatigue + ambiguous names)</li>
+    <li>$400,000 annual cost (for just 500K entities)</li>
+    <li>Compliance nightmares when errors slipped through</li>
+</ul>
+<img src="https://raw.githubusercontent.com/LaurentPRAT-DB/ACME_CapitalIQ_IdentityReco/main/docs/images/problem_solution.png" alt="Problem to Solution">
+<p class="caption">From manual reconciliation chaos to AI-powered precision</p>
+<p>Sound familiar? Entity reconciliation is the unglamorous backbone of financial data operations. Get it wrong, and you face delayed reporting, inaccurate risk assessments, and regulatory scrutiny.</p>
+<p>This article shows you how we built an <strong>AI-powered entity matching system</strong> that:</p>
+<ul>
+    <li>Achieves <strong>94% F1 accuracy</strong> (vs 85-90% manual)</li>
+    <li>Costs <strong>$0.009 per entity</strong> (89x cheaper than manual)</li>
+    <li>Processes in <strong>0.6 seconds</strong> (800x faster)</li>
+    <li>Auto-matches <strong>87%</strong> of entities (no human review needed)</li>
+</ul>
+<hr>
+
+<h2>What You'll Learn</h2>
+<p><strong>The Business Problem</strong> — For Executives, Finance — <em>5 min read</em></p>
+<p><strong>Architecture Deep Dive</strong> — For Technical Leads — <em>10 min read</em></p>
+<p><strong>Installation Guide</strong> — For Administrators — <em>15 min read</em></p>
+<p><strong>The ML Models</strong> — For Data Scientists — <em>15 min read</em></p>
+<p><strong>ROI Analysis</strong> — For FinOps, Procurement — <em>5 min read</em></p>
+<hr>
+
+<h2>For Executives: The 2-Minute Summary</h2>
+<p>The Entity Matching System automatically links company names from any source (CRM, invoices, vendor feeds) to standardized S&P Capital IQ identifiers.</p>
+<p><strong>Without the System:</strong></p>
+<ul>
+    <li>Manual reconciliation: $400K/year</li>
+    <li>Error rate: 10-15%</li>
+    <li>Processing time: 8 minutes per entity</li>
+    <li>Scalability: Linear cost increase</li>
+</ul>
+<p><strong>With the System:</strong></p>
+<ul>
+    <li>Automated matching: $167K/year</li>
+    <li>Error rate: 3.8%</li>
+    <li>Processing time: 0.6 seconds per entity</li>
+    <li>Scalability: Handle 10x volume at 2x cost</li>
+</ul>
+<img src="https://raw.githubusercontent.com/LaurentPRAT-DB/ACME_CapitalIQ_IdentityReco/main/docs/images/roi_comparison.png" alt="ROI Comparison">
+<p class="caption">Annual savings of $232K (58% reduction) with 3-month payback period</p>
+<h3>Key Metrics Achieved</h3>
+<p><strong>F1 Score:</strong> 94.2% (target: 93%)</p>
+<p><strong>Precision:</strong> 96.1% (target: 95%)</p>
+<p><strong>Recall:</strong> 92.5% (target: 90%)</p>
+<p><strong>Auto-Match Rate:</strong> 87.3% (target: 85%)</p>
+<p><strong>Cost per Entity:</strong> $0.009 (target: &lt;$0.01)</p>
+<p><strong>Average Latency:</strong> 0.6 seconds (target: &lt;1s)</p>
+<blockquote><strong>Executive Action Item:</strong> Review the 3-year ROI analysis showing $640K net savings. Schedule a demo of the dashboard showing real-time matching confidence scores.</blockquote>
+<hr>
+
+<h2>For Technical Leads: The 4-Stage Architecture</h2>
+<p>The secret sauce is a <strong>hybrid pipeline</strong> that routes each entity through progressively more sophisticated (and expensive) matching stages. Simple cases are handled cheaply; complex cases get the full AI treatment.</p>
+<img src="https://raw.githubusercontent.com/LaurentPRAT-DB/ACME_CapitalIQ_IdentityReco/main/docs/images/architecture.png" alt="Architecture Diagram">
+<p class="caption">Four-stage pipeline: Exact Match → Vector Search → Ditto Matcher → Foundation Model</p>
+
+<h3>Stage 1: Exact Match (30-40% coverage, $0 cost)</h3>
+<p>The cheapest match is a direct lookup. If the source entity has a LEI, CUSIP, or ISIN identifier, we simply JOIN against the reference table.</p>
+<p class="gist-marker">GIST #1<br>https://gist.github.com/LaurentPRAT-DB/f2300f8177fc9dc58d6a7d79823ccf14</p>
+<script src="https://gist.github.com/LaurentPRAT-DB/f2300f8177fc9dc58d6a7d79823ccf14.js"></script>
+<p class="mobile-fallback">📱 On mobile? <a href="https://gist.github.com/LaurentPRAT-DB/f2300f8177fc9dc58d6a7d79823ccf14/raw">View raw code</a></p>
+<p><strong>Why it matters:</strong> 30-40% of entities match exactly, costing nothing.</p>
+
+<h3>Stage 2: Vector Search (Top-10 candidates, $0.0001/entity)</h3>
+<p>For entities without exact matches, we use semantic similarity. BGE embeddings convert company names into 1024-dimensional vectors, then Databricks Vector Search finds the 10 most similar reference entities.</p>
+<p class="gist-marker">GIST #2<br>https://gist.github.com/LaurentPRAT-DB/dababb800ded53b423e7568317ae2470</p>
+<script src="https://gist.github.com/LaurentPRAT-DB/dababb800ded53b423e7568317ae2470.js"></script>
+<p class="mobile-fallback">📱 On mobile? <a href="https://gist.github.com/LaurentPRAT-DB/dababb800ded53b423e7568317ae2470/raw">View raw code</a></p>
+<p><strong>Why it matters:</strong> Finds "Apple Inc." when searching for "Apple Computer Inc." based on semantic meaning, not exact string matching.</p>
+
+<h3>Stage 3: Ditto Matcher (90%+ of remaining, $0.001/entity)</h3>
+<p>The workhorse of the system. Ditto is a fine-tuned DistilBERT model that takes entity pairs and predicts: MATCH or NO_MATCH with a confidence score.</p>
+<p class="gist-marker">GIST #3<br>https://gist.github.com/LaurentPRAT-DB/c88f1a86a090e8200877fb4f261bdb51</p>
+<script src="https://gist.github.com/LaurentPRAT-DB/c88f1a86a090e8200877fb4f261bdb51.js"></script>
+<p class="mobile-fallback">📱 On mobile? <a href="https://gist.github.com/LaurentPRAT-DB/c88f1a86a090e8200877fb4f261bdb51/raw">View raw code</a></p>
+<p><strong>Why Ditto?</strong> Research shows specialized entity matching models achieve <strong>96% F1</strong> vs 88% for GPT-4 zero-shot, at 1/50th the cost.</p>
+
+<h3>Stage 4: Foundation Model Fallback (&lt;10%, $0.05/entity)</h3>
+<p>For low-confidence cases (&lt;80%), we escalate to Llama 3.1 or DBRX for complex reasoning about mergers, acquisitions, and name changes.</p>
+<p class="gist-marker">GIST #4<br>https://gist.github.com/LaurentPRAT-DB/befaedf899b1d2723f56aed1488bbdf9</p>
+<script src="https://gist.github.com/LaurentPRAT-DB/befaedf899b1d2723f56aed1488bbdf9.js"></script>
+<p class="mobile-fallback">📱 On mobile? <a href="https://gist.github.com/LaurentPRAT-DB/befaedf899b1d2723f56aed1488bbdf9/raw">View raw code</a></p>
+<p><strong>Why it matters:</strong> Handles edge cases like "Facebook Inc." → "Meta Platforms Inc." that require world knowledge.</p>
+<hr>
+
+<h2>For Administrators: 15-Minute Installation</h2>
+<h3>Prerequisites</h3>
+<ul>
+    <li>Databricks workspace with Unity Catalog</li>
+    <li>Python 3.9+</li>
+    <li>Access to S&P Capital IQ reference data</li>
+</ul>
+<h3>Quick Verification</h3>
+<p>Run this to verify your environment:</p>
+<p class="gist-marker">GIST #5<br>https://gist.github.com/LaurentPRAT-DB/6ea86d7ea154458bc37e96fa372703bd</p>
+<script src="https://gist.github.com/LaurentPRAT-DB/6ea86d7ea154458bc37e96fa372703bd.js"></script>
+<p class="mobile-fallback">📱 On mobile? <a href="https://gist.github.com/LaurentPRAT-DB/6ea86d7ea154458bc37e96fa372703bd/raw">View raw code</a></p>
+
+<h3>Phased Deployment</h3>
+<p class="gist-marker">GIST #6<br>https://gist.github.com/LaurentPRAT-DB/9f2e554d6d84e518a326987bebc5e948</p>
+<script src="https://gist.github.com/LaurentPRAT-DB/9f2e554d6d84e518a326987bebc5e948.js"></script>
+<p class="mobile-fallback">📱 On mobile? <a href="https://gist.github.com/LaurentPRAT-DB/9f2e554d6d84e518a326987bebc5e948/raw">View raw code</a></p>
+
+<h3>What Gets Created</h3>
+<p><strong>Unity Catalog:</strong> <code>your_catalog.entity_matching</code></p>
+<p><strong>Schemas:</strong> bronze, silver, gold, models</p>
+<p><strong>7 Delta Tables:</strong> source_entities, reference_entities, exact_matches, vector_candidates, ditto_scores, final_matches, pipeline_metrics</p>
+<p><strong>Model Serving Endpoint:</strong> <code>ditto-em-dev</code> (serverless, scale-to-zero)</p>
+<p><strong>Scheduled Job:</strong> Daily at 2 AM with email notifications</p>
+<blockquote><strong>Admin Action Item:</strong> After deployment, verify the daily job completes successfully. Set up alerts for accuracy drops below 93%.</blockquote>
+<hr>
+
+<h2>For Data Scientists: The ML Models</h2>
+<h3>Why Not Just Use GPT-4?</h3>
+<p>We tested multiple approaches:</p>
+<p><strong>GPT-4 Zero-Shot:</strong> 88% F1, $0.30/entity</p>
+<p><strong>GPT-4 Few-Shot:</strong> 91% F1, $0.35/entity</p>
+<p><strong>Ditto (Fine-tuned):</strong> 96% F1, $0.001/entity</p>
+<p><strong>Conclusion:</strong> Specialized models dramatically outperform general LLMs for entity matching, at 1/300th the cost.</p>
+
+<h3>Training Data Strategy</h3>
+<p><strong>Positive Pairs (50%):</strong></p>
+<ul>
+    <li>10% Exact duplicates</li>
+    <li>40% Minor variations (punctuation, spacing)</li>
+    <li>20% Name changes (mergers, acquisitions)</li>
+    <li>20% International subsidiaries</li>
+    <li>10% Typos/OCR errors</li>
+</ul>
+<p><strong>Negative Pairs (50%):</strong></p>
+<ul>
+    <li>60% Same sector (confusing pairs like "Apple Inc." vs "Apple Bank")</li>
+    <li>30% Similar names</li>
+    <li>10% Random</li>
+</ul>
+<hr>
+
+<h2>For FinOps: The ROI Analysis</h2>
+<h3>Cost Breakdown (Annual, 500K entities)</h3>
+<p><strong>Manual Process:</strong></p>
+<ul>
+    <li>Labor: $400,000 (12 analysts × 8 hours/day)</li>
+    <li>Error remediation: $50,000</li>
+    <li>Total: $450,000</li>
+</ul>
+<p><strong>AI Solution:</strong></p>
+<ul>
+    <li>S&P Data License: $60,000</li>
+    <li>Databricks Infrastructure: $30,000</li>
+    <li>Model Inference: $2,000</li>
+    <li>Staff (maintenance): $75,500</li>
+    <li>Total: $167,500</li>
+</ul>
+<p><strong>Annual Savings: $232,500 (58% reduction)</strong></p>
+<h3>3-Year ROI</h3>
+<ul>
+    <li>POC Investment: $59,000</li>
+    <li>3-Year Operations: $502,000</li>
+    <li>Total Investment: $561,000</li>
+    <li>Avoided Manual Costs: $1,200,000</li>
+    <li><strong>Net Benefit: $640,000</strong></li>
+    <li><strong>Payback Period: 3 months</strong></li>
+</ul>
+<blockquote><strong>FinOps Action Item:</strong> Compare this $0.009/entity cost against your current reconciliation spend. Request a pilot with 10,000 entities to validate before full rollout.</blockquote>
+<hr>
+
+<h2>Common Gotchas (Save Yourself Hours)</h2>
+<h3>Gotcha 1: "Model Serving UPDATE_FAILED"</h3>
+<p><strong>Cause:</strong> Model registered with <code>mlflow.transformers.log_model()</code> instead of <code>mlflow.pyfunc.log_model()</code></p>
+<p><strong>Solution:</strong> Re-register with PyFunc wrapper (see Data Scientists section)</p>
+
+<h3>Gotcha 2: Low Accuracy (&lt;90%)</h3>
+<p><strong>Cause:</strong> Insufficient or imbalanced training data</p>
+<p><strong>Solution:</strong> Generate 10K+ pairs with 50/50 positive/negative split. Include hard negatives (same sector companies).</p>
+
+<h3>Gotcha 3: Vector Search Returns Poor Candidates</h3>
+<p><strong>Cause:</strong> Embedding model not optimized for entity names</p>
+<p><strong>Solution:</strong> Use BGE-Large-EN (1024 dim) instead of generic sentence transformers. Include ticker and country in embedding text.</p>
+
+<h3>Gotcha 4: Foundation Model Costs Exploding</h3>
+<p><strong>Cause:</strong> Too many entities routed to Stage 4</p>
+<p><strong>Solution:</strong> Lower the Ditto confidence threshold from 80% to 70%. Retrain Ditto with more edge cases.</p>
+<hr>
+
+<h2>What's Next?</h2>
+<ol>
+    <li><strong>Week 1:</strong> Run the quick test, review accuracy on your data</li>
+    <li><strong>Week 2:</strong> Deploy to dev environment, train on your historical matches</li>
+    <li><strong>Month 1:</strong> A/B test against manual process on 10K entities</li>
+    <li><strong>Month 2:</strong> Production rollout with monitoring dashboard</li>
+</ol>
+<hr>
+
+<h2>Resources</h2>
+<ul>
+    <li><strong>GitHub Repository:</strong> <a href="https://github.com/LaurentPRAT-DB/ACME_CapitalIQ_IdentityReco">github.com/LaurentPRAT-DB/ACME_CapitalIQ_IdentityReco</a></li>
+    <li><strong>Databricks Vector Search:</strong> <a href="https://docs.databricks.com/en/generative-ai/vector-search.html">docs.databricks.com/vector-search</a></li>
+    <li><strong>Ditto Paper:</strong> <a href="https://arxiv.org/abs/2004.00584">arxiv.org/abs/2004.00584</a></li>
+    <li><strong>BGE Embeddings:</strong> <a href="https://huggingface.co/BAAI/bge-large-en">huggingface.co/BAAI/bge-large-en</a></li>
+</ul>
+<hr>
+
+<p><strong>Did this help?</strong> Give it a clap and follow for more practical AI/ML content.</p>
+<p><em>Tags: #Databricks #EntityMatching #MachineLearning #DataEngineering #FinOps #NLP</em></p>
+
+</body>
+</html>

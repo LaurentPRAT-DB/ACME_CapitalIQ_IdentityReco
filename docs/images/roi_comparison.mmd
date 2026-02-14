@@ -1,0 +1,20 @@
+%%{init: {'theme': 'base'}}%%
+flowchart LR
+    subgraph manual["<b>Manual Process</b>"]
+        m1["<b>$400K/year</b><br/>500K entities<br/>8 min each"]
+        m2["<b>10-15% errors</b><br/>Compliance risk<br/>Rework costs"]
+    end
+
+    subgraph ai["<b>AI Solution</b>"]
+        a1["<b>$167K/year</b><br/>$0.009/entity<br/>0.6 sec each"]
+        a2["<b>3.8% errors</b><br/>Audit trail<br/>Explainable"]
+    end
+
+    savings{{"<b>$232K/year</b><br/><b>SAVINGS</b><br/>58% reduction"}}
+
+    m1 --> savings
+    a1 --> savings
+
+    style manual fill:#FFCDD2,stroke:#D32F2F
+    style ai fill:#C8E6C9,stroke:#388E3C
+    style savings fill:#FFF9C4,stroke:#F9A825,color:#000

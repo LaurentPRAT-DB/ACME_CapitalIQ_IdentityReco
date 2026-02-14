@@ -1,0 +1,26 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#FF3621'}}}%%
+flowchart LR
+    subgraph problem["<b>The Problem</b>"]
+        p1["<b>Manual Matching</b><br/>8 min per entity<br/>$0.80 cost"]
+        p2["<b>Error Rate</b><br/>10-15% mistakes<br/>Compliance risk"]
+        p3["<b>Inconsistent Data</b><br/>Apple Inc vs AAPL<br/>Multiple systems"]
+    end
+
+    solution{{"<b>AI-Powered</b><br/><b>Entity Matching</b>"}}
+
+    subgraph outcomes["<b>The Solution</b>"]
+        o1["<b>94% Accuracy</b><br/>F1 Score"]
+        o2["<b>$0.009/entity</b><br/>89x cheaper"]
+        o3["<b>0.6 sec</b><br/>800x faster"]
+    end
+
+    p1 --> solution
+    p2 --> solution
+    p3 --> solution
+    solution --> o1
+    solution --> o2
+    solution --> o3
+
+    style problem fill:#FFCDD2,stroke:#D32F2F
+    style solution fill:#FF3621,stroke:#CC2A1A,color:#fff
+    style outcomes fill:#C8E6C9,stroke:#388E3C

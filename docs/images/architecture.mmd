@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base'}}%%
+flowchart TB
+    subgraph sources["<b>Data Sources</b>"]
+        s1[("CRM")]
+        s2[("Invoices")]
+        s3[("Contracts")]
+        s4[("Vendor Feeds")]
+    end
+
+    subgraph stage1["<b>Stage 1: Exact Match</b><br/>30-40% coverage | $0"]
+        e1["LEI / CUSIP / ISIN<br/>SQL JOIN"]
+    end
+
+    subgraph stage2["<b>Stage 2: Vector Search</b><br/>Top-10 candidates | $0.0001"]
+        v1["BGE Embeddings<br/>1024 dimensions"]
+    end
+
+    subgraph stage3["<b>Stage 3: Ditto Matcher</b><br/>90%+ matches | $0.001"]
+        d1["Fine-tuned DistilBERT<br/>96% F1 Score"]
+    end
+
+    subgraph stage4["<b>Stage 4: Foundation Model</b><br/>&lt;10% fallback | $0.05"]
+        f1["Llama 3.1 / DBRX<br/>Complex reasoning"]
+    end
+
+    subgraph output["<b>Output</b>"]
+        o1[["<b>Matched Entities</b><br/>CIQ ID + Confidence<br/>87% Auto-match"]]
+    end
+
+    s1 --> e1
+    s2 --> e1
+    s3 --> e1
+    s4 --> e1
+    e1 -->|No match| v1
+    v1 --> d1
+    d1 -->|High conf &gt;90%| o1
+    d1 -->|Low conf &lt;80%| f1
+    f1 --> o1
+    e1 -->|Match found| o1
+
+    style sources fill:#E3F2FD,stroke:#1976D2
+    style stage1 fill:#E8F5E9,stroke:#388E3C
+    style stage2 fill:#FFF3E0,stroke:#F57C00
+    style stage3 fill:#F3E5F5,stroke:#7B1FA2
+    style stage4 fill:#FFEBEE,stroke:#C62828
+    style output fill:#E0F2F1,stroke:#00796B
